@@ -1,0 +1,347 @@
+.auth-wrapper {
+  min-height: 100vh;
+  width: 100vw;
+  background-color: #f0f4f8; /* Light gray-blue background */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Background Shapes */
+.bg-shape {
+  position: absolute;
+  background-color: #dbeafe; /* Light blue accent */
+  z-index: 0;
+}
+
+.bg-shape-top-right {
+  top: -150px;
+  right: -100px;
+  width: 600px;
+  height: 500px;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  transform: rotate(-15deg);
+  opacity: 0.8;
+}
+
+.bg-shape-bottom-left {
+  bottom: -200px;
+  left: -150px;
+  width: 700px;
+  height: 600px;
+  border-radius: 60% 40% 30% 70% / 50% 40% 60% 50%;
+  transform: rotate(20deg);
+  opacity: 0.8;
+}
+
+/* Content Container */
+.auth-content {
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Header */
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-logo-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.logo-icon-container {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  color: #103b70; /* Darker blue */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-icon-bars {
+  position: absolute;
+}
+
+.logo-icon-arrow {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.auth-logo-group h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #103b70;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.auth-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Card */
+.auth-card {
+  background-color: #ffffff;
+  width: 100%;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  margin-bottom: 2rem;
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.card-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.card-header p {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* Form Styles */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.forgot-link {
+  font-size: 0.8rem;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: #94a3b8;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #334155;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+}
+
+.input-container input::placeholder {
+  color: #94a3b8;
+}
+
+.input-container input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.toggle-password {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+
+.toggle-password:hover {
+  color: #64748b;
+}
+
+.helper-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+/* Checkboxes */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+.checkbox-group label {
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+  margin: 0;
+}
+
+.checkbox-group.terms label {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.checkbox-group.terms a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.checkbox-group.terms a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+.submit-btn {
+  background-color: #1d68b6; /* The specific blue from the image */
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.submit-btn:hover {
+  background-color: #15559a;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1rem 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.divider span {
+  padding: 0 1rem;
+}
+
+/* Google Button */
+.google-btn {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.google-btn:hover {
+  background-color: #f8fafc;
+}
+
+/* Card Footer */
+.card-footer {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.card-footer p {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.switch-link {
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch-link:hover {
+  text-decoration: underline;
+}
+
+/* Auth Footer */
+.auth-footer {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 2rem 1.5rem;
+  }
+}
