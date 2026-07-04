@@ -92,13 +92,29 @@ export default function Simulador({ addNotification }) {
     setEntidadId(id);
     const ent = entidades.find(ent => ent.id === id);
     if (ent) {
-      setTasaInteres(ent.tea_soles_min);
+      // Select rate based on selected currency
+      const isUSD = moneda === 'Dólares (US$)';
+      const teaField = isUSD ? 'tea_dolares_min' : 'tea_soles_min';
+      setTasaInteres(ent[teaField] || ent.tea_soles_min);
       setPlazo(ent.plazo_maximo);
       setGraciaTotal(ent.periodo_gracia_min);
     } else {
       setTasaInteres('');
       setPlazo('');
       setGraciaTotal('');
+    }
+  };
+
+  const handleMonedaChange = (e) => {
+    setMoneda(e.target.value);
+    // Re-load tasa from selected entidad if present
+    if (entidadId) {
+      const ent = entidades.find(ent => ent.id === entidadId);
+      if (ent) {
+        const isUSD = e.target.value === 'Dólares (US$)';
+        const teaField = isUSD ? 'tea_dolares_min' : 'tea_soles_min';
+        setTasaInteres(ent[teaField] || ent.tea_soles_min);
+      }
     }
   };
 
@@ -192,6 +208,7 @@ export default function Simulador({ addNotification }) {
       return;
     }
 
+    const pdfCurrencySymbol = moneda === 'Dólares (US$)' ? 'US$' : 'S/';
     const clienteObj = clientes.find(c => c.id === clienteId);
     const vehiculoObj = vehiculos.find(v => v.id.toString() === vehiculoId.toString());
     const entidadObj  = entidades.find(e => e.id === entidadId);
@@ -254,14 +271,14 @@ export default function Simulador({ addNotification }) {
 
     // ── Section 2: Configuración ──────────────────────────────────
     sectionTitle('2. Configuración del Crédito');
-    row2col('Precio vehículo:', `S/ ${parseFloat(precioVehiculo).toFixed(2)}`, 'Cuota inicial:', `S/ ${parseFloat(cuotaInicial || 0).toFixed(2)} (${pctInicial} %)`);
-    row2col('Cuota final (cuotón):', `${porcentajeCuotaFinal || 0} % = S/ ${resultado.cuotaFinal.toFixed(2)}`, 'Monto del préstamo:', `S/ ${resultado.prestamo.toFixed(2)}`);
+    row2col('Precio vehículo:', `${pdfCurrencySymbol} ${parseFloat(precioVehiculo).toFixed(2)}`, 'Cuota inicial:', `${pdfCurrencySymbol} ${parseFloat(cuotaInicial || 0).toFixed(2)} (${pctInicial} %)`);
+    row2col('Cuota final (cuotón):', `${porcentajeCuotaFinal || 0} % = ${pdfCurrencySymbol} ${resultado.cuotaFinal.toFixed(2)}`, 'Monto del préstamo:', `${pdfCurrencySymbol} ${resultado.prestamo.toFixed(2)}`);
     row2col('Tipo de tasa:', tipoTasa, 'Tasa de interés:', `${tasaInteres} %`);
     row2col('Moneda:', moneda, 'Capitalización:', capitalizacion);
     row2col('Plazo:', `${plazo} meses`, 'Gracia:', `Total: ${graciaTotal || 0} / Parcial: ${graciaParcial || 0} meses`);
     row2col('Seguro Desgravamen:', `${seguroDesgravamen || 0} % ${periodoSegDes.toLowerCase()}`, 'Seguro Vehicular:', `${seguroVehicular || 0} % anual`);
-    row2col('Gastos Iniciales (financiados):', `S/ ${getTotalGastos().toFixed(2)}`, 'GPS / Portes / G.Adm:', `S/ ${(parseFloat(gpsMensual) || 0).toFixed(2)} / ${(parseFloat(portesMensual) || 0).toFixed(2)} / ${(parseFloat(gastosAdmMensual) || 0).toFixed(2)} mensual`);
-    row2col('COK (VAN):', `${resultado.cokAnual} % anual`, 'Saldo regular / VP cuotón:', `S/ ${resultado.saldoRegularInicial.toFixed(2)} / ${resultado.saldoCuotonInicial.toFixed(2)}`);
+    row2col('Gastos Iniciales (financiados):', `${pdfCurrencySymbol} ${getTotalGastos().toFixed(2)}`, 'GPS / Portes / G.Adm:', `${pdfCurrencySymbol} ${(parseFloat(gpsMensual) || 0).toFixed(2)} / ${(parseFloat(portesMensual) || 0).toFixed(2)} / ${(parseFloat(gastosAdmMensual) || 0).toFixed(2)} mensual`);
+    row2col('COK (VAN):', `${resultado.cokAnual} % anual`, 'Saldo regular / VP cuotón:', `${pdfCurrencySymbol} ${resultado.saldoRegularInicial.toFixed(2)} / ${resultado.saldoCuotonInicial.toFixed(2)}`);
     y += 3;
 
     // ── Section 3: Resultados ─────────────────────────────────────
@@ -269,12 +286,12 @@ export default function Simulador({ addNotification }) {
 
     // Result cards as a row
     const cards = [
-      { label: 'Cuota Mensual', value: `S/ ${resultado.cuotaMensual.toFixed(2)}` },
-      { label: 'Cuotón Final', value: `S/ ${resultado.cuotaFinal.toFixed(2)}` },
+      { label: 'Cuota Mensual Total', value: `${pdfCurrencySymbol} ${resultado.cuotaMensual.toFixed(2)}` },
+      { label: 'Cuotón Final', value: `${pdfCurrencySymbol} ${resultado.cuotaFinal.toFixed(2)}` },
       { label: 'TEM', value: `${resultado.tem.toFixed(4)} %` },
       { label: 'TIR Mensual', value: `${resultado.tirMensual.toFixed(4)} %` },
       { label: 'TCEA', value: `${resultado.tcea.toFixed(4)} %` },
-      { label: `VAN (COK ${resultado.cokAnual}%)`, value: `S/ ${resultado.van.toFixed(2)}` },
+      { label: `VAN (COK ${resultado.cokAnual}%)`, value: `${pdfCurrencySymbol} ${resultado.van.toFixed(2)}` },
     ];
     const cardW = (pageW - margin * 2) / cards.length;
     cards.forEach((card, i) => {
@@ -295,9 +312,9 @@ export default function Simulador({ addNotification }) {
 
     // Desglose
     const totalPago = resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0);
-    row2col('Total Intereses:', `S/ ${resultado.totalIntereses.toFixed(2)}`, 'Total Seguros:', `S/ ${resultado.totalSeguros.toFixed(2)}`);
-    row2col('Total Amortización:', `S/ ${resultado.totalAmortizacion.toFixed(2)}`, 'Total Costos Periódicos:', `S/ ${resultado.totalCostosFijos.toFixed(2)}`);
-    row2col('Monto Total a Pagar:', `S/ ${totalPago.toFixed(2)}`, '', '');
+    row2col('Total Intereses:', `${pdfCurrencySymbol} ${resultado.totalIntereses.toFixed(2)}`, 'Total Seguros:', `${pdfCurrencySymbol} ${resultado.totalSeguros.toFixed(2)}`);
+    row2col('Total Amortización:', `${pdfCurrencySymbol} ${resultado.totalAmortizacion.toFixed(2)}`, 'Total Costos Periódicos:', `${pdfCurrencySymbol} ${resultado.totalCostosFijos.toFixed(2)}`);
+    row2col('Monto Total a Pagar:', `${pdfCurrencySymbol} ${totalPago.toFixed(2)}`, '', '');
     y += 4;
 
     // ── Section 4: Cronograma ─────────────────────────────────────
@@ -319,7 +336,7 @@ export default function Simulador({ addNotification }) {
 
     autoTable(doc, {
       startY: y,
-      head: [['N°', 'P.G.', 'Cuota', 'Interés', 'Amort.', 'Seg.Desg.', 'Seg.Veh.', 'Costos', 'Saldo Reg.', 'Saldo Cuotón', 'Flujo']],
+      head: [['N°', 'P.G.', 'Cuota reg.', 'Interés', 'Amort.', 'Seg.Desg.', 'Seg.Veh.', 'Costos', 'Saldo Reg.', 'Saldo Cuotón', 'Flujo']],
       body: tableRows,
       margin: { left: margin, right: margin },
       styles: { fontSize: 6.5, cellPadding: 1.5 },
@@ -345,6 +362,7 @@ export default function Simulador({ addNotification }) {
     doc.save('simulacion_credito_vehicular.pdf');
   };
 
+  const currencySymbol = moneda === 'Dólares (US$)' ? 'US$' : 'S/';
   const pctInicial = precioVehiculo && cuotaInicial ? ((parseFloat(cuotaInicial) / parseFloat(precioVehiculo)) * 100).toFixed(2) : "0.00";
   const montoCuotaFinal = precioVehiculo && porcentajeCuotaFinal ? (parseFloat(precioVehiculo) * parseFloat(porcentajeCuotaFinal) / 100).toFixed(2) : "0.00";
 
@@ -395,11 +413,11 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">2</span> Configuración del crédito</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>Valor de vehículo (S/)</label>
+                <label>Valor de vehículo ({currencySymbol})</label>
                 <input type="number" readOnly value={precioVehiculo} />
               </div>
               <div className="form-group">
-                <label>Cuota inicial (S/)</label>
+                <label>Cuota inicial ({currencySymbol})</label>
                 <div className="input-with-addon">
                   <input type="number" step="0.01" value={cuotaInicial} onChange={(e) => setCuotaInicial(e.target.value)} />
                   <span className="addon">{pctInicial} %</span>
@@ -410,7 +428,7 @@ export default function Simulador({ addNotification }) {
                 <label>Cuota final / Cuotón (% del precio)</label>
                 <div className="input-with-addon">
                   <input type="number" step="0.01" min="0" value={porcentajeCuotaFinal} onChange={(e) => setPorcentajeCuotaFinal(e.target.value)} />
-                  <span className="addon">S/ {montoCuotaFinal}</span>
+                  <span className="addon">{currencySymbol} {montoCuotaFinal}</span>
                 </div>
                 <span className="help-text">Se paga al final del crédito (Compra Inteligente)</span>
               </div>
@@ -432,9 +450,9 @@ export default function Simulador({ addNotification }) {
 
               <div className="form-group">
                 <label>Moneda</label>
-                <select value={moneda} onChange={(e) => setMoneda(e.target.value)}>
+                <select value={moneda} onChange={handleMonedaChange}>
                   <option value="Soles (S/)">Soles (S/)</option>
-                  <option value="Dólares ($)">Dólares ($)</option>
+                  <option value="Dólares (US$)">Dólares (US$)</option>
                 </select>
               </div>
               <div className="form-group">
@@ -493,28 +511,28 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">4</span> Gastos Iniciales</div>
             <div className="form-grid-3">
               <div className="form-group">
-                <label>Tasación (S/)</label>
+                <label>Tasación ({currencySymbol})</label>
                 <input type="number" step="0.01" value={tasacion} onChange={(e) => setTasacion(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Estudio de Títulos (S/)</label>
+                <label>Estudio de Títulos ({currencySymbol})</label>
                 <input type="number" step="0.01" value={estudioTitulos} onChange={(e) => setEstudioTitulos(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Notaría (S/)</label>
+                <label>Notaría ({currencySymbol})</label>
                 <input type="number" step="0.01" value={notaria} onChange={(e) => setNotaria(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Certificado Vehicular (S/)</label>
+                <label>Certificado Vehicular ({currencySymbol})</label>
                 <input type="number" step="0.01" value={certificadoRegistro} onChange={(e) => setCertificadoRegistro(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Impresión de Contrato (S/)</label>
+                <label>Impresión de Contrato ({currencySymbol})</label>
                 <input type="number" step="0.01" value={impresionContrato} onChange={(e) => setImpresionContrato(e.target.value)} />
               </div>
             </div>
             <div style={{marginTop: '1rem', color: '#1d68b6', fontWeight: '600', fontSize: '0.9rem'}}>
-              Total Gastos Iniciales: S/ {getTotalGastos().toFixed(2)} (se financian dentro del préstamo)
+              Total Gastos Iniciales: {currencySymbol} {getTotalGastos().toFixed(2)} (se financian dentro del préstamo)
             </div>
           </div>
 
@@ -522,15 +540,15 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">5</span> Costos Periódicos y COK</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>GPS (S/ mensual)</label>
+                <label>GPS ({currencySymbol} mensual)</label>
                 <input type="number" step="0.01" value={gpsMensual} onChange={(e) => setGpsMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Portes (S/ mensual)</label>
+                <label>Portes ({currencySymbol} mensual)</label>
                 <input type="number" step="0.01" value={portesMensual} onChange={(e) => setPortesMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Gastos Administrativos (S/ mensual)</label>
+                <label>Gastos Administrativos ({currencySymbol} mensual)</label>
                 <input type="number" step="0.01" value={gastosAdmMensual} onChange={(e) => setGastosAdmMensual(e.target.value)} />
               </div>
               <div className="form-group">
@@ -555,15 +573,15 @@ export default function Simulador({ addNotification }) {
             
             <div className="resultados-grid">
               <div className="resultado-box">
-                <h4>Cuota mensual</h4>
+                <h4>Cuota mensual total</h4>
                 <div className="val">
-                  {resultado ? `S/ ${resultado.cuotaMensual.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.cuotaMensual.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
               <div className="resultado-box">
                 <h4>Cuotón final</h4>
                 <div className="val">
-                  {resultado ? `S/ ${resultado.cuotaFinal.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.cuotaFinal.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
               <div className="resultado-box">
@@ -587,17 +605,17 @@ export default function Simulador({ addNotification }) {
               <div className="resultado-box">
                 <h4>{resultado ? `VAN (COK ${resultado.cokAnual}%)` : 'VAN'}</h4>
                 <div className="val">
-                  {resultado ? `S/ ${resultado.van.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.van.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
             </div>
 
             {resultado && (
               <div style={{marginTop: '1rem', fontSize: '0.85rem', color: '#475569'}}>
-                Préstamo: <strong>S/ {resultado.prestamo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
-                {' · '}Saldo regular: <strong>S/ {resultado.saldoRegularInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
-                {' · '}VP cuotón: <strong>S/ {resultado.saldoCuotonInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
-                {' · '}Cuota regular (sin costos): <strong>S/ {resultado.cuotaRegular.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                Préstamo: <strong>{currencySymbol} {resultado.prestamo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                {' · '}Saldo regular: <strong>{currencySymbol} {resultado.saldoRegularInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                {' · '}VP cuotón: <strong>{currencySymbol} {resultado.saldoCuotonInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                {' · '}Cuota regular (sin costos): <strong>{currencySymbol} {resultado.cuotaRegular.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
               </div>
             )}
 
@@ -608,7 +626,7 @@ export default function Simulador({ addNotification }) {
                   <tr>
                     <th>Periodo</th>
                     <th>P.G.</th>
-                    <th>Cuota</th>
+                    <th>Cuota regular</th>
                     <th>Interés</th>
                     <th>Amortización</th>
                     <th>Seg. Desg.</th>
@@ -651,28 +669,28 @@ export default function Simulador({ addNotification }) {
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Intereses</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalIntereses.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalIntereses.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
                 <span>Costo del financiamiento</span>
               </div>
             </div>
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Seguros</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalSeguros.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalSeguros.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
                 <span>Desgravamen + Vehículo</span>
               </div>
             </div>
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Amortización</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalAmortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalAmortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
                 <span>Pago a capital (incluye cuotón)</span>
               </div>
             </div>
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Costos Periódicos</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalCostosFijos.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalCostosFijos.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
                 <span>GPS + Portes + Gastos Adm.</span>
               </div>
             </div>
@@ -681,7 +699,7 @@ export default function Simulador({ addNotification }) {
               <div>
                 <div className="total-label">Monto total a pagar</div>
                 <div className="total-value">
-                  {resultado ? `S/ ${resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
               <div className="total-plazo">
