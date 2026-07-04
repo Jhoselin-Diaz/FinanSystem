@@ -24,10 +24,12 @@ export default function Simulador({ addNotification }) {
   const [moneda, setMoneda] = useState('Soles (S/)');
   const [capitalizacion, setCapitalizacion] = useState('Mensual');
   const [plazo, setPlazo] = useState('');
-  const [periodoGracia, setPeriodoGracia] = useState('');
-  const [tipoGracia, setTipoGracia] = useState('Total'); // Total or Parcial
+  const [graciaTotal, setGraciaTotal] = useState('');
+  const [graciaParcial, setGraciaParcial] = useState('');
+  const [porcentajeCuotaFinal, setPorcentajeCuotaFinal] = useState('');
 
   const [seguroDesgravamen, setSeguroDesgravamen] = useState('');
+  const [periodoSegDes, setPeriodoSegDes] = useState('Anual');
   const [seguroVehicular, setSeguroVehicular] = useState('');
 
   const [tasacion, setTasacion] = useState('');
@@ -35,7 +37,12 @@ export default function Simulador({ addNotification }) {
   const [notaria, setNotaria] = useState('');
   const [certificadoRegistro, setCertificadoRegistro] = useState('');
   const [impresionContrato, setImpresionContrato] = useState('');
-  const [gastosAdministrativos, setGastosAdministrativos] = useState('');
+
+  // Costos periódicos: afectan el flujo de caja, la TIR y la TCEA
+  const [gpsMensual, setGpsMensual] = useState('');
+  const [portesMensual, setPortesMensual] = useState('');
+  const [gastosAdmMensual, setGastosAdmMensual] = useState('');
+  const [cok, setCok] = useState('50');
 
   // Results State
   const [resultado, setResultado] = useState(null);
@@ -61,9 +68,9 @@ export default function Simulador({ addNotification }) {
         setCapitalizacion(cfg.capitalizacion_predeterminada || 'Mensual');
         setSeguroDesgravamen(cfg.seguro_desgravamen ?? '');
         setSeguroVehicular(cfg.seguro_vehiculo ?? '');
-        setGastosAdministrativos(cfg.gastos_administrativos ?? '');
+        setGastosAdmMensual(cfg.gastos_administrativos ?? '');
         if (cfg.plazo_maximo) setPlazo(cfg.plazo_maximo);
-        if (cfg.periodo_gracia_max) setPeriodoGracia(cfg.periodo_gracia_max);
+        if (cfg.periodo_gracia_max) setGraciaTotal(cfg.periodo_gracia_max);
       }
     };
     fetchData();
@@ -85,13 +92,29 @@ export default function Simulador({ addNotification }) {
     setEntidadId(id);
     const ent = entidades.find(ent => ent.id === id);
     if (ent) {
-      setTasaInteres(ent.tea_soles_min);
+      // Select rate based on selected currency
+      const isUSD = moneda === 'Dólares (US$)';
+      const teaField = isUSD ? 'tea_dolares_min' : 'tea_soles_min';
+      setTasaInteres(ent[teaField] || ent.tea_soles_min);
       setPlazo(ent.plazo_maximo);
-      setPeriodoGracia(ent.periodo_gracia_min);
+      setGraciaTotal(ent.periodo_gracia_min);
     } else {
       setTasaInteres('');
       setPlazo('');
-      setPeriodoGracia('');
+      setGraciaTotal('');
+    }
+  };
+
+  const handleMonedaChange = (e) => {
+    setMoneda(e.target.value);
+    // Re-load tasa from selected entidad if present
+    if (entidadId) {
+      const ent = entidades.find(ent => ent.id === entidadId);
+      if (ent) {
+        const isUSD = e.target.value === 'Dólares (US$)';
+        const teaField = isUSD ? 'tea_dolares_min' : 'tea_soles_min';
+        setTasaInteres(ent[teaField] || ent.tea_soles_min);
+      }
     }
   };
 
@@ -100,8 +123,7 @@ export default function Simulador({ addNotification }) {
            (parseFloat(estudioTitulos) || 0) + 
            (parseFloat(notaria) || 0) + 
            (parseFloat(certificadoRegistro) || 0) + 
-           (parseFloat(impresionContrato) || 0) + 
-           (parseFloat(gastosAdministrativos) || 0);
+           (parseFloat(impresionContrato) || 0);
   };
 
   const handleCalculate = (e) => {
@@ -114,15 +136,21 @@ export default function Simulador({ addNotification }) {
     const result = calcularCronograma({
       precioVehiculo: parseFloat(precioVehiculo),
       cuotaInicial: parseFloat(cuotaInicial) || 0,
+      porcentajeCuotaFinal: parseFloat(porcentajeCuotaFinal) || 0,
       tasaInteres: parseFloat(tasaInteres),
       tipoTasa,
       capitalizacion,
       plazo: parseInt(plazo),
-      periodoGracia: parseInt(periodoGracia) || 0,
-      tipoGracia,
-      seguroDesgravamenAnual: parseFloat(seguroDesgravamen) || 0,
+      graciaTotal: parseInt(graciaTotal) || 0,
+      graciaParcial: parseInt(graciaParcial) || 0,
+      seguroDesgravamen: parseFloat(seguroDesgravamen) || 0,
+      periodoSeguroDesgravamen: periodoSegDes,
       seguroVehiculoAnual: parseFloat(seguroVehicular) || 0,
-      gastosIniciales: getTotalGastos()
+      gastosIniciales: getTotalGastos(),
+      gpsMensual: parseFloat(gpsMensual) || 0,
+      portesMensual: parseFloat(portesMensual) || 0,
+      gastosAdmMensual: parseFloat(gastosAdmMensual) || 0,
+      cokAnual: parseFloat(cok) || 50
     });
 
     setResultado(result);
@@ -146,15 +174,15 @@ export default function Simulador({ addNotification }) {
         capitalizacion: tipoTasa === 'Nominal Anual (TNA)' ? capitalizacion : null,
         moneda: moneda,
         plazo: parseInt(plazo),
-        periodo_gracia: parseInt(periodoGracia) || 0,
-        tipo_gracia: tipoGracia,
+        periodo_gracia: (parseInt(graciaTotal) || 0) + (parseInt(graciaParcial) || 0),
+        tipo_gracia: `T:${parseInt(graciaTotal) || 0} P:${parseInt(graciaParcial) || 0}`,
         seguro_desgravamen: parseFloat(seguroDesgravamen) || 0,
         seguro_vehicular: parseFloat(seguroVehicular) || 0,
         gastos_iniciales: getTotalGastos(),
         cuota_mensual: resultado.cuotaMensual,
         tcea: resultado.tcea,
         van: resultado.van,
-        tir: resultado.tir
+        tir: resultado.tirMensual
       }]);
 
       if (error) throw error;
@@ -180,6 +208,7 @@ export default function Simulador({ addNotification }) {
       return;
     }
 
+    const pdfCurrencySymbol = moneda === 'Dólares (US$)' ? 'US$' : 'S/';
     const clienteObj = clientes.find(c => c.id === clienteId);
     const vehiculoObj = vehiculos.find(v => v.id.toString() === vehiculoId.toString());
     const entidadObj  = entidades.find(e => e.id === entidadId);
@@ -242,12 +271,14 @@ export default function Simulador({ addNotification }) {
 
     // ── Section 2: Configuración ──────────────────────────────────
     sectionTitle('2. Configuración del Crédito');
-    row2col('Precio vehículo:', `S/ ${parseFloat(precioVehiculo).toFixed(2)}`, 'Cuota inicial:', `S/ ${parseFloat(cuotaInicial || 0).toFixed(2)}`);
+    row2col('Precio vehículo:', `${pdfCurrencySymbol} ${parseFloat(precioVehiculo).toFixed(2)}`, 'Cuota inicial:', `${pdfCurrencySymbol} ${parseFloat(cuotaInicial || 0).toFixed(2)} (${pctInicial} %)`);
+    row2col('Cuota final (cuotón):', `${porcentajeCuotaFinal || 0} % = ${pdfCurrencySymbol} ${resultado.cuotaFinal.toFixed(2)}`, 'Monto del préstamo:', `${pdfCurrencySymbol} ${resultado.prestamo.toFixed(2)}`);
     row2col('Tipo de tasa:', tipoTasa, 'Tasa de interés:', `${tasaInteres} %`);
     row2col('Moneda:', moneda, 'Capitalización:', capitalizacion);
-    row2col('Plazo:', `${plazo} meses`, 'Periodo de gracia:', `${periodoGracia || 0} meses (${tipoGracia})`);
-    row2col('Seguro Desgravamen:', `${seguroDesgravamen || 0} %`, 'Seguro Vehicular:', `${seguroVehicular || 0} %`);
-    row2col('Gastos Iniciales:', `S/ ${getTotalGastos().toFixed(2)}`, '', '');
+    row2col('Plazo:', `${plazo} meses`, 'Gracia:', `Total: ${graciaTotal || 0} / Parcial: ${graciaParcial || 0} meses`);
+    row2col('Seguro Desgravamen:', `${seguroDesgravamen || 0} % ${periodoSegDes.toLowerCase()}`, 'Seguro Vehicular:', `${seguroVehicular || 0} % anual`);
+    row2col('Gastos Iniciales (financiados):', `${pdfCurrencySymbol} ${getTotalGastos().toFixed(2)}`, 'GPS / Portes / G.Adm:', `${pdfCurrencySymbol} ${(parseFloat(gpsMensual) || 0).toFixed(2)} / ${(parseFloat(portesMensual) || 0).toFixed(2)} / ${(parseFloat(gastosAdmMensual) || 0).toFixed(2)} mensual`);
+    row2col('COK (VAN):', `${resultado.cokAnual} % anual`, 'Saldo regular / VP cuotón:', `${pdfCurrencySymbol} ${resultado.saldoRegularInicial.toFixed(2)} / ${resultado.saldoCuotonInicial.toFixed(2)}`);
     y += 3;
 
     // ── Section 3: Resultados ─────────────────────────────────────
@@ -255,11 +286,12 @@ export default function Simulador({ addNotification }) {
 
     // Result cards as a row
     const cards = [
-      { label: 'Cuota Mensual', value: `S/ ${resultado.cuotaMensual.toFixed(2)}` },
+      { label: 'Cuota Mensual Total', value: `${pdfCurrencySymbol} ${resultado.cuotaMensual.toFixed(2)}` },
+      { label: 'Cuotón Final', value: `${pdfCurrencySymbol} ${resultado.cuotaFinal.toFixed(2)}` },
       { label: 'TEM', value: `${resultado.tem.toFixed(4)} %` },
-      { label: 'TCEA', value: `${resultado.tcea.toFixed(2)} %` },
-      { label: 'VAN', value: `S/ ${resultado.van.toFixed(2)}` },
-      { label: 'TIR', value: `${resultado.tir.toFixed(2)} %` },
+      { label: 'TIR Mensual', value: `${resultado.tirMensual.toFixed(4)} %` },
+      { label: 'TCEA', value: `${resultado.tcea.toFixed(4)} %` },
+      { label: `VAN (COK ${resultado.cokAnual}%)`, value: `${pdfCurrencySymbol} ${resultado.van.toFixed(2)}` },
     ];
     const cardW = (pageW - margin * 2) / cards.length;
     cards.forEach((card, i) => {
@@ -279,9 +311,10 @@ export default function Simulador({ addNotification }) {
     y += 19;
 
     // Desglose
-    const totalPago = resultado.totalAmortizacion + resultado.totalIntereses + resultado.totalSeguros + getTotalGastos();
-    row2col('Total Intereses:', `S/ ${resultado.totalIntereses.toFixed(2)}`, 'Total Seguros:', `S/ ${resultado.totalSeguros.toFixed(2)}`);
-    row2col('Total Amortización:', `S/ ${resultado.totalAmortizacion.toFixed(2)}`, 'Monto Total a Pagar:', `S/ ${totalPago.toFixed(2)}`);
+    const totalPago = resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0);
+    row2col('Total Intereses:', `${pdfCurrencySymbol} ${resultado.totalIntereses.toFixed(2)}`, 'Total Seguros:', `${pdfCurrencySymbol} ${resultado.totalSeguros.toFixed(2)}`);
+    row2col('Total Amortización:', `${pdfCurrencySymbol} ${resultado.totalAmortizacion.toFixed(2)}`, 'Total Costos Periódicos:', `${pdfCurrencySymbol} ${resultado.totalCostosFijos.toFixed(2)}`);
+    row2col('Monto Total a Pagar:', `${pdfCurrencySymbol} ${totalPago.toFixed(2)}`, '', '');
     y += 4;
 
     // ── Section 4: Cronograma ─────────────────────────────────────
@@ -289,22 +322,27 @@ export default function Simulador({ addNotification }) {
 
     const tableRows = resultado.cronograma.map(c => [
       c.periodo,
-      `S/ ${c.cuota.toFixed(2)}`,
-      `S/ ${c.interes.toFixed(2)}`,
-      `S/ ${c.amortizacion.toFixed(2)}`,
-      `S/ ${c.seguro.toFixed(2)}`,
-      `S/ ${c.saldo.toFixed(2)}`
+      c.gracia,
+      c.cuota.toFixed(2),
+      c.interes.toFixed(2),
+      c.amortizacion.toFixed(2),
+      c.seguroDesgravamen.toFixed(2),
+      c.seguroVehicular.toFixed(2),
+      c.costosFijos.toFixed(2),
+      c.saldo.toFixed(2),
+      c.saldoCuoton.toFixed(2),
+      c.flujo.toFixed(2)
     ]);
 
     autoTable(doc, {
       startY: y,
-      head: [['Periodo', 'Cuota', 'Interés', 'Amortización', 'Seguro', 'Saldo Pendiente']],
+      head: [['N°', 'P.G.', 'Cuota reg.', 'Interés', 'Amort.', 'Seg.Desg.', 'Seg.Veh.', 'Costos', 'Saldo Reg.', 'Saldo Cuotón', 'Flujo']],
       body: tableRows,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 7.5, cellPadding: 2 },
+      styles: { fontSize: 6.5, cellPadding: 1.5 },
       headStyles: { fillColor: [29, 104, 182], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: { 0: { halign: 'center' } },
+      columnStyles: { 0: { halign: 'center' }, 1: { halign: 'center' } },
     });
 
     // Footer
@@ -324,7 +362,9 @@ export default function Simulador({ addNotification }) {
     doc.save('simulacion_credito_vehicular.pdf');
   };
 
+  const currencySymbol = moneda === 'Dólares (US$)' ? 'US$' : 'S/';
   const pctInicial = precioVehiculo && cuotaInicial ? ((parseFloat(cuotaInicial) / parseFloat(precioVehiculo)) * 100).toFixed(2) : "0.00";
+  const montoCuotaFinal = precioVehiculo && porcentajeCuotaFinal ? (parseFloat(precioVehiculo) * parseFloat(porcentajeCuotaFinal) / 100).toFixed(2) : "0.00";
 
   return (
     <div className="simulador-container">
@@ -373,15 +413,24 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">2</span> Configuración del crédito</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>Valor de vehículo (S/)</label>
+                <label>Valor de vehículo ({currencySymbol})</label>
                 <input type="number" readOnly value={precioVehiculo} />
               </div>
               <div className="form-group">
-                <label>Cuota inicial (S/)</label>
+                <label>Cuota inicial ({currencySymbol})</label>
                 <div className="input-with-addon">
                   <input type="number" step="0.01" value={cuotaInicial} onChange={(e) => setCuotaInicial(e.target.value)} />
                   <span className="addon">{pctInicial} %</span>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label>Cuota final / Cuotón (% del precio)</label>
+                <div className="input-with-addon">
+                  <input type="number" step="0.01" min="0" value={porcentajeCuotaFinal} onChange={(e) => setPorcentajeCuotaFinal(e.target.value)} />
+                  <span className="addon">{currencySymbol} {montoCuotaFinal}</span>
+                </div>
+                <span className="help-text">Se paga al final del crédito (Compra Inteligente)</span>
               </div>
 
               <div className="form-group">
@@ -401,9 +450,9 @@ export default function Simulador({ addNotification }) {
 
               <div className="form-group">
                 <label>Moneda</label>
-                <select value={moneda} onChange={(e) => setMoneda(e.target.value)}>
+                <select value={moneda} onChange={handleMonedaChange}>
                   <option value="Soles (S/)">Soles (S/)</option>
-                  <option value="Dólares ($)">Dólares ($)</option>
+                  <option value="Dólares (US$)">Dólares (US$)</option>
                 </select>
               </div>
               <div className="form-group">
@@ -424,14 +473,14 @@ export default function Simulador({ addNotification }) {
                 <input type="number" required value={plazo} onChange={(e) => setPlazo(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Periodo de gracia (meses)</label>
-                <div style={{display: 'flex', gap: '0.5rem'}}>
-                  <input type="number" style={{flex: 1}} value={periodoGracia} onChange={(e) => setPeriodoGracia(e.target.value)} />
-                  <select style={{width: '100px'}} value={tipoGracia} onChange={(e) => setTipoGracia(e.target.value)}>
-                    <option value="Total">Total</option>
-                    <option value="Parcial">Parcial</option>
-                  </select>
-                </div>
+                <label>Gracia Total (meses)</label>
+                <input type="number" min="0" value={graciaTotal} onChange={(e) => setGraciaTotal(e.target.value)} />
+                <span className="help-text">Sin cuota; el interés se capitaliza</span>
+              </div>
+              <div className="form-group">
+                <label>Gracia Parcial (meses)</label>
+                <input type="number" min="0" value={graciaParcial} onChange={(e) => setGraciaParcial(e.target.value)} />
+                <span className="help-text">Paga solo interés y seguros; el saldo no cambia</span>
               </div>
             </div>
           </div>
@@ -440,9 +489,15 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">3</span> Seguros (Vehiculares)</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>Seguro de Desgravamen (% anual)</label>
-                <input type="number" step="0.001" value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
-                <span className="help-text">Cubre el saldo en caso de fallecimiento del titular</span>
+                <label>Seguro de Desgravamen (%)</label>
+                <div style={{display: 'flex', gap: '0.5rem'}}>
+                  <input type="number" step="0.001" style={{flex: 1}} value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
+                  <select style={{width: '110px'}} value={periodoSegDes} onChange={(e) => setPeriodoSegDes(e.target.value)}>
+                    <option value="Anual">Anual</option>
+                    <option value="Mensual">Mensual</option>
+                  </select>
+                </div>
+                <span className="help-text">Sobre el saldo deudor. Ej: 0.588% anual = 0.049% mensual</span>
               </div>
               <div className="form-group">
                 <label>Seguro de Vehículo (% anual)</label>
@@ -456,32 +511,54 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">4</span> Gastos Iniciales</div>
             <div className="form-grid-3">
               <div className="form-group">
-                <label>Tasación (S/)</label>
+                <label>Tasación ({currencySymbol})</label>
                 <input type="number" step="0.01" value={tasacion} onChange={(e) => setTasacion(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Estudio de Títulos (S/)</label>
+                <label>Estudio de Títulos ({currencySymbol})</label>
                 <input type="number" step="0.01" value={estudioTitulos} onChange={(e) => setEstudioTitulos(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Notaría (S/)</label>
+                <label>Notaría ({currencySymbol})</label>
                 <input type="number" step="0.01" value={notaria} onChange={(e) => setNotaria(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Certificado Vehicular (S/)</label>
+                <label>Certificado Vehicular ({currencySymbol})</label>
                 <input type="number" step="0.01" value={certificadoRegistro} onChange={(e) => setCertificadoRegistro(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Impresión de Contrato (S/)</label>
+                <label>Impresión de Contrato ({currencySymbol})</label>
                 <input type="number" step="0.01" value={impresionContrato} onChange={(e) => setImpresionContrato(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Gastos Administrativos (S/)</label>
-                <input type="number" step="0.01" value={gastosAdministrativos} onChange={(e) => setGastosAdministrativos(e.target.value)} />
               </div>
             </div>
             <div style={{marginTop: '1rem', color: '#1d68b6', fontWeight: '600', fontSize: '0.9rem'}}>
-              Total Gastos Iniciales: S/ {getTotalGastos().toFixed(2)}
+              Total Gastos Iniciales: {currencySymbol} {getTotalGastos().toFixed(2)} (se financian dentro del préstamo)
+            </div>
+          </div>
+
+          <div className="section-card">
+            <div className="section-title"><span className="circle-number">5</span> Costos Periódicos y COK</div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>GPS ({currencySymbol} mensual)</label>
+                <input type="number" step="0.01" value={gpsMensual} onChange={(e) => setGpsMensual(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Portes ({currencySymbol} mensual)</label>
+                <input type="number" step="0.01" value={portesMensual} onChange={(e) => setPortesMensual(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Gastos Administrativos ({currencySymbol} mensual)</label>
+                <input type="number" step="0.01" value={gastosAdmMensual} onChange={(e) => setGastosAdmMensual(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>COK (% anual)</label>
+                <div className="input-with-addon">
+                  <input type="number" step="0.01" value={cok} onChange={(e) => setCok(e.target.value)} />
+                  <span className="addon">%</span>
+                </div>
+                <span className="help-text">Tasa de descuento para calcular el VAN</span>
+              </div>
             </div>
           </div>
 
@@ -496,36 +573,51 @@ export default function Simulador({ addNotification }) {
             
             <div className="resultados-grid">
               <div className="resultado-box">
-                <h4>Cuota mensual</h4>
+                <h4>Cuota mensual total</h4>
                 <div className="val">
-                  {resultado ? `S/ ${resultado.cuotaMensual.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.cuotaMensual.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
               <div className="resultado-box">
-                <h4>TEM Ajustada</h4>
+                <h4>Cuotón final</h4>
                 <div className="val">
-                  {resultado ? `${resultado.tem.toFixed(2)} %` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.cuotaFinal.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                </div>
+              </div>
+              <div className="resultado-box">
+                <h4>TEM</h4>
+                <div className="val">
+                  {resultado ? `${resultado.tem.toFixed(4)} %` : '--'}
+                </div>
+              </div>
+              <div className="resultado-box">
+                <h4>TIR mensual</h4>
+                <div className="val">
+                  {resultado ? `${resultado.tirMensual.toFixed(4)} %` : '--'}
                 </div>
               </div>
               <div className="resultado-box">
                 <h4>TCEA</h4>
                 <div className="val">
-                  {resultado ? `${resultado.tcea.toFixed(2)} %` : '--'}
+                  {resultado ? `${resultado.tcea.toFixed(4)} %` : '--'}
                 </div>
               </div>
               <div className="resultado-box">
-                <h4>VAN</h4>
+                <h4>{resultado ? `VAN (COK ${resultado.cokAnual}%)` : 'VAN'}</h4>
                 <div className="val">
-                  {resultado ? `S/ ${resultado.van.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
-                </div>
-              </div>
-              <div className="resultado-box">
-                <h4>TIR</h4>
-                <div className="val">
-                  {resultado ? `${resultado.tir.toFixed(2)} %` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.van.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
             </div>
+
+            {resultado && (
+              <div style={{marginTop: '1rem', fontSize: '0.85rem', color: '#475569'}}>
+                Préstamo: <strong>{currencySymbol} {resultado.prestamo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                {' · '}Saldo regular: <strong>{currencySymbol} {resultado.saldoRegularInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                {' · '}VP cuotón: <strong>{currencySymbol} {resultado.saldoCuotonInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+                {' · '}Cuota regular (sin costos): <strong>{currencySymbol} {resultado.cuotaRegular.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+              </div>
+            )}
 
             <h3 style={{fontSize: '1.1rem', margin: '2rem 0 1rem', color: '#1e293b'}}>Cronograma de pagos</h3>
             <div className="cronograma-wrapper">
@@ -533,25 +625,35 @@ export default function Simulador({ addNotification }) {
                 <thead>
                   <tr>
                     <th>Periodo</th>
-                    <th>Cuota</th>
+                    <th>P.G.</th>
+                    <th>Cuota regular</th>
                     <th>Interés</th>
                     <th>Amortización</th>
-                    <th>Seguro</th>
-                    <th>Saldo pendiente</th>
+                    <th>Seg. Desg.</th>
+                    <th>Seg. Veh.</th>
+                    <th>Costos</th>
+                    <th>Saldo regular</th>
+                    <th>Saldo cuotón</th>
+                    <th>Flujo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {!resultado ? (
-                    <tr><td colSpan="6" style={{padding: '2rem'}}>Realiza una simulación para ver el cronograma</td></tr>
+                    <tr><td colSpan="11" style={{padding: '2rem'}}>Realiza una simulación para ver el cronograma</td></tr>
                   ) : (
                     resultado.cronograma.map(c => (
                       <tr key={c.periodo}>
                         <td>{c.periodo}</td>
+                        <td>{c.gracia}</td>
                         <td>{c.cuota.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                         <td>{c.interes.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                         <td>{c.amortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.seguro.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td>{c.seguroDesgravamen.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td>{c.seguroVehicular.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td>{c.costosFijos.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                         <td>{c.saldo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td>{c.saldoCuoton.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td>{c.flujo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                       </tr>
                     ))
                   )}
@@ -567,22 +669,29 @@ export default function Simulador({ addNotification }) {
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Intereses</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalIntereses.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalIntereses.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
                 <span>Costo del financiamiento</span>
               </div>
             </div>
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Seguros</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalSeguros.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalSeguros.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
                 <span>Desgravamen + Vehículo</span>
               </div>
             </div>
             <div className="desglose-item">
               <div className="desglose-label"><Info size={16}/> Total Amortización</div>
               <div className="desglose-value">
-                <strong>{resultado ? `S/ ${resultado.totalAmortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
-                <span>Pago a capital</span>
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalAmortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <span>Pago a capital (incluye cuotón)</span>
+              </div>
+            </div>
+            <div className="desglose-item">
+              <div className="desglose-label"><Info size={16}/> Total Costos Periódicos</div>
+              <div className="desglose-value">
+                <strong>{resultado ? `${currencySymbol} ${resultado.totalCostosFijos.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
+                <span>GPS + Portes + Gastos Adm.</span>
               </div>
             </div>
 
@@ -590,12 +699,12 @@ export default function Simulador({ addNotification }) {
               <div>
                 <div className="total-label">Monto total a pagar</div>
                 <div className="total-value">
-                  {resultado ? `S/ ${(resultado.totalAmortizacion + resultado.totalIntereses + resultado.totalSeguros + getTotalGastos()).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
                 </div>
               </div>
               <div className="total-plazo">
                 DURANTE<br/>
-                <strong>{plazo || '--'} meses</strong>
+                <strong>{resultado ? resultado.cronograma.length : (plazo || '--')} meses</strong>
               </div>
             </div>
           </div>
