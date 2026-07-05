@@ -4,14 +4,15 @@ import { HelpCircle, RefreshCw, Save, Plus, Pencil, Trash2, Eye, EyeOff, Lock, C
 import './Configuracion.css';
 
 const DEFAULT_CONFIG = {
-  seguro_desgravamen: 0.055, seguro_vehiculo: 1.20, gastos_administrativos: 150.00,
-  mora: 9.50, igv: 18.00,
+  // Mantener sólo los parámetros obligatorios para la configuración inicial
   metodo_calculo: 'Método Francés (Sistema de Cuotas Constantes)',
   tipo_calendario: 'Calendario Comercial (360 días)',
-  valor_residual_min: 10, valor_residual_max: 40, cuota_inicial_min: 10,
-  plazo_maximo: 60, periodo_gracia_max: 6,
-  moneda_predeterminada: 'Soles (S/)', tipo_tasa_predeterminada: 'Efectiva Anual (TEA)',
-  capitalizacion_predeterminada: 'Mensual', redondeo: 2, formato_fecha: 'DD/MM/YYYY',
+  moneda_predeterminada: 'Soles (S/)',
+  tipo_tasa_predeterminada: 'Efectiva Anual (TEA)',
+  capitalizacion_predeterminada: 'Mensual',
+  plazo_maximo: 60,
+  periodo_gracia_max: 6,
+  redondeo: 2,
   permitir_edicion: true,
   notas: 'Estos parámetros se aplicarán a todas las simulaciones. Los cambios serán efectivos inmediatamente.',
 };
@@ -154,29 +155,18 @@ export default function Configuracion() {
           <div className="config-panel-title">1. Parámetros financieros <HelpCircle size={15} className="help-icon" /></div>
           <div className="cfg-form-grid">
             <div className="cfg-form-group">
-              <label>Seguro de Desgravamen (% anual)</label>
-              <div className="cfg-input-wrap"><input type="number" step="0.001" {...set('seguro_desgravamen')} /><span className="cfg-addon">%</span></div>
-              <span className="helper">Cubre el saldo deudor en caso de fallecimiento del titular.</span>
+              <label>Plazo máximo (meses)</label>
+              <input className="cfg-input-solo" type="number" {...set('plazo_maximo')} />
+              <span className="helper">Plazo máximo permitido del crédito.</span>
             </div>
             <div className="cfg-form-group">
-              <label>Seguro de Vehículo (% anual)</label>
-              <div className="cfg-input-wrap"><input type="number" step="0.01" {...set('seguro_vehiculo')} /><span className="cfg-addon">%</span></div>
-              <span className="helper">Protege el vehículo ante siniestros o daños.</span>
+              <label>Período de gracia máximo (meses)</label>
+              <input className="cfg-input-solo" style={{maxWidth:160}} type="number" {...set('periodo_gracia_max')} />
+              <span className="helper">Meses máximos de gracia permitidos.</span>
             </div>
             <div className="cfg-form-group">
-              <label>Gastos Administrativos (S/)</label>
-              <input className="cfg-input-solo" type="number" step="0.01" {...set('gastos_administrativos')} />
-              <span className="helper">Cobro por evaluación y procesamiento del crédito.</span>
-            </div>
-            <div className="cfg-form-group">
-              <label>Mora (% anual)</label>
-              <div className="cfg-input-wrap"><input type="number" step="0.01" {...set('mora')} /><span className="cfg-addon">%</span></div>
-              <span className="helper">Tasa aplicada sobre cuotas vencidas.</span>
-            </div>
-            <div className="cfg-form-group" style={{gridColumn:'span 2'}}>
-              <label>IGV (%)</label>
-              <div className="cfg-input-wrap" style={{maxWidth:160}}><input type="number" step="0.01" {...set('igv')} /><span className="cfg-addon">%</span></div>
-              <span className="helper">Impuesto General a las Ventas.</span>
+              <label>Redondeo de cálculos</label>
+              <select className="cfg-select" {...set('redondeo')}><option value={2}>A 2 decimales</option><option value={3}>A 3 decimales</option></select>
             </div>
           </div>
         </div>
@@ -189,8 +179,6 @@ export default function Configuracion() {
               <label>Método de cálculo</label>
               <select className="cfg-select" {...set('metodo_calculo')}>
                 <option>Método Francés (Sistema de Cuotas Constantes)</option>
-                <option>Método Alemán (Amortización constante)</option>
-                <option>Método Americano (Cuota Balón)</option>
               </select>
             </div>
             <div className="cfg-form-group">
@@ -214,16 +202,6 @@ export default function Configuracion() {
               <label>Cuota inicial mínima (%)</label>
               <div className="cfg-input-wrap"><input type="number" {...set('cuota_inicial_min')} /><span className="cfg-addon">%</span></div>
               <span className="helper">Porcentaje mínimo del valor del vehículo.</span>
-            </div>
-            <div className="cfg-form-group">
-              <label>Plazo máximo (meses)</label>
-              <input className="cfg-input-solo" type="number" {...set('plazo_maximo')} />
-              <span className="helper">Plazo máximo permitido del crédito.</span>
-            </div>
-            <div className="cfg-form-group" style={{gridColumn:'span 2'}}>
-              <label>Período de gracia máximo (meses)</label>
-              <input className="cfg-input-solo" style={{maxWidth:160}} type="number" {...set('periodo_gracia_max')} />
-              <span className="helper">Meses máximos de gracia permitidos.</span>
             </div>
           </div>
         </div>
