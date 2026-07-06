@@ -374,6 +374,15 @@
   font-weight: 600;
 }
 
+.badge-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 /* === Bottom Info Blocks === */
 .bottom-blocks {
   display: grid;

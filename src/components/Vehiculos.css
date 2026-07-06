@@ -372,3 +372,21 @@
   justify-content: flex-end;
   gap: 1rem;
 }
+
+/* Miniatura del vehículo */
+.veh-thumb {
+  width: 52px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  display: block;
+}
+
+.veh-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
