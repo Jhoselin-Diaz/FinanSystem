@@ -207,7 +207,7 @@ export default function Historial() {
               <th>Cliente</th>
               <th>Vehículo</th>
               <th>Banco</th>
-              <th>Cuota Mensual</th>
+              <th>Cuota mensual total</th>
               <th>TCEA</th>
               <th>Plazo</th>
               <th>Acciones</th>
@@ -383,7 +383,7 @@ export default function Historial() {
                 <h4><BarChart3 size={14} /> Resultados</h4>
                 <div className="results-highlight-grid">
                   <div className="results-highlight-box">
-                    <span>Cuota Mensual</span>
+                    <span>Cuota mensual total</span>
                     <strong>{sym(selectedSim)} {fmt(selectedSim.cuota_mensual)}</strong>
                   </div>
                   <div className="results-highlight-box">
