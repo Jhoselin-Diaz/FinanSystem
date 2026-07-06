@@ -1,7 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Clock, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle } from 'lucide-react';
+import {
+  Clock, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle,
+  User, Settings, BarChart3, Download
+} from 'lucide-react';
+import { calcularCronograma } from '../lib/financialMath';
+import { exportCronogramaPDF } from '../lib/exportPdf';
 import './Historial.css';
+
+// Recupera T/P de "tipo_gracia" ("T:2 P:1") para registros sin gracia_total/gracia_parcial guardados
+const parseGracia = (sim) => {
+  const match = (sim.tipo_gracia || '').match(/T:(\d+)\s*P:(\d+)/);
+  return {
+    graciaTotal: sim.gracia_total ?? (match ? parseInt(match[1]) : 0),
+    graciaParcial: sim.gracia_parcial ?? (match ? parseInt(match[2]) : 0),
+  };
+};
+
+// Recalcula el cronograma completo de una simulación guardada, a partir de sus datos persistidos
+const recomputeResultado = (sim) => {
+  const { graciaTotal, graciaParcial } = parseGracia(sim);
+  return calcularCronograma({
+    precioVehiculo: parseFloat(sim.precio_vehiculo) || 0,
+    cuotaInicial: parseFloat(sim.cuota_inicial) || 0,
+    porcentajeCuotaFinal: parseFloat(sim.porcentaje_cuota_final) || 0,
+    tasaInteres: parseFloat(sim.tasa_interes) || 0,
+    tipoTasa: sim.tipo_tasa,
+    capitalizacion: sim.capitalizacion,
+    plazo: parseInt(sim.plazo) || 0,
+    graciaTotal,
+    graciaParcial,
+    seguroDesgravamen: parseFloat(sim.seguro_desgravamen) || 0,
+    periodoSeguroDesgravamen: 'Anual',
+    seguroVehiculoAnual: parseFloat(sim.seguro_vehicular) || 0,
+    gastosIniciales: parseFloat(sim.gastos_iniciales) || 0,
+    gpsMensual: parseFloat(sim.gps_mensual) || 0,
+    portesMensual: parseFloat(sim.portes_mensual) || 0,
+    gastosAdmMensual: parseFloat(sim.gastos_adm_mensual) || 0,
+    cokAnual: parseFloat(sim.cok) || 50,
+  });
+};
 
 export default function Historial() {
   const [simulaciones, setSimulaciones] = useState([]);
@@ -93,6 +131,44 @@ export default function Historial() {
   const sym = (s) => (s?.moneda === 'Dólares (US$)' || s?.moneda === 'Dólares ($)' ? 'US$' : 'S/');
 
   const simToDelete = simulaciones.find(s => s.id === confirmDeleteId);
+
+  // Cronograma completo recalculado a partir de los datos guardados de la simulación seleccionada
+  const resultadoDetalle = useMemo(
+    () => selectedSim ? recomputeResultado(selectedSim) : null,
+    [selectedSim]
+  );
+
+  const handleExportSim = () => {
+    if (!selectedSim || !resultadoDetalle) return;
+    const { graciaTotal, graciaParcial } = parseGracia(selectedSim);
+    exportCronogramaPDF({
+      sym: sym(selectedSim),
+      clienteNombre: selectedSim.clientes?.nombre_completo,
+      clienteDni: selectedSim.clientes?.dni,
+      entidadNombre: selectedSim.entidades_financieras?.nombre,
+      vehiculoNombre: selectedSim.vehiculos ? `${selectedSim.vehiculos.marca} ${selectedSim.vehiculos.modelo}` : null,
+      moneda: selectedSim.moneda,
+      precioVehiculo: parseFloat(selectedSim.precio_vehiculo) || 0,
+      pctCuotaInicial: parseFloat(selectedSim.porcentaje_cuota_inicial) || 0,
+      montoCuotaInicial: parseFloat(selectedSim.cuota_inicial) || 0,
+      pctCuotaFinal: parseFloat(selectedSim.porcentaje_cuota_final) || 0,
+      tipoTasa: selectedSim.tipo_tasa,
+      tasaInteres: selectedSim.tasa_interes,
+      capitalizacion: selectedSim.capitalizacion,
+      plazo: selectedSim.plazo,
+      graciaTotal,
+      graciaParcial,
+      seguroDesgravamen: selectedSim.seguro_desgravamen || 0,
+      periodoSegDes: 'Anual',
+      seguroRiesgo: selectedSim.seguro_vehicular || 0,
+      gpsMensual: selectedSim.gps_mensual || 0,
+      portesMensual: selectedSim.portes_mensual || 0,
+      gastosAdmMensual: selectedSim.gastos_adm_mensual || 0,
+      gastosIniciales: selectedSim.gastos_iniciales || 0,
+      resultado: resultadoDetalle,
+      fileName: `simulacion_${selectedSim.clientes?.dni || selectedSim.id}.pdf`,
+    });
+  };
 
   return (
     <div className="historial-container">
@@ -232,7 +308,7 @@ export default function Historial() {
 
             <div className="modal-detail-body">
               <div className="detail-section">
-                <h4>👤 Datos Principales</h4>
+                <h4><User size={14} /> Datos Principales</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span>Cliente</span>
@@ -254,7 +330,7 @@ export default function Historial() {
               </div>
 
               <div className="detail-section">
-                <h4>⚙️ Configuración del Crédito</h4>
+                <h4><Settings size={14} /> Configuración del Crédito</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span>Precio Vehículo</span>
@@ -304,7 +380,7 @@ export default function Historial() {
               </div>
 
               <div className="detail-section">
-                <h4>📊 Resultados</h4>
+                <h4><BarChart3 size={14} /> Resultados</h4>
                 <div className="results-highlight-grid">
                   <div className="results-highlight-box">
                     <span>Cuota Mensual</span>
@@ -324,19 +400,90 @@ export default function Historial() {
                   </div>
                 </div>
               </div>
+
+              {resultadoDetalle && (
+                <div className="detail-section">
+                  <h4><Clock size={14} /> Cronograma de Pagos</h4>
+                  <div className="cronograma-wrapper">
+                    <table className="cronograma-table">
+                      <thead>
+                        <tr>
+                          <th rowSpan="2">Nº</th>
+                          <th rowSpan="2">P.G.</th>
+                          <th colSpan="5" className="th-group">Cronograma del Cuotón (CF)</th>
+                          <th colSpan="6" className="th-group">Cronograma de la Cuota Regular</th>
+                          <th colSpan="4" className="th-group">Costes de operación</th>
+                          <th rowSpan="2">Flujo</th>
+                        </tr>
+                        <tr>
+                          <th title="Saldo Inicial Cuota Final">SICF</th>
+                          <th title="Interés Cuota Final">ICF</th>
+                          <th title="Amortización Cuota Final">ACF</th>
+                          <th title="Seguro desgravamen Cuota Final">SegDesCF</th>
+                          <th title="Saldo Final Cuota Final">SFCF</th>
+                          <th title="Saldo Inicial">SI</th>
+                          <th title="Interés">I</th>
+                          <th title="Cuota (incluye seguro desgravamen)">Cuota</th>
+                          <th title="Amortización">A</th>
+                          <th title="Seguro desgravamen">SegDes</th>
+                          <th title="Saldo Final para Cuota">SF</th>
+                          <th title="Seguro de riesgo">SegRie</th>
+                          <th>GPS</th>
+                          <th>Portes</th>
+                          <th title="Gastos administrativos">GasAdm</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="fila-cero">
+                          <td>0</td>
+                          <td colSpan="16" style={{textAlign: 'left', color: '#64748b'}}>Desembolso del préstamo</td>
+                          <td className="flujo-positivo">{fmt(resultadoDetalle.prestamo)}</td>
+                        </tr>
+                        {resultadoDetalle.cronograma.map(c => (
+                          <tr key={c.periodo}>
+                            <td>{c.periodo}</td>
+                            <td>{c.gracia}</td>
+                            <td>{fmt(c.siCuoton)}</td>
+                            <td>{fmt(c.iCuoton)}</td>
+                            <td>{fmt(c.amortCuoton)}</td>
+                            <td>{fmt(c.segDesCuoton)}</td>
+                            <td>{fmt(c.sfCuoton)}</td>
+                            <td>{fmt(c.saldoInicial)}</td>
+                            <td>{fmt(c.interes)}</td>
+                            <td>{fmt(c.cuota)}</td>
+                            <td>{fmt(c.amortizacion)}</td>
+                            <td>{fmt(c.seguroDesgravamen)}</td>
+                            <td>{fmt(c.saldo)}</td>
+                            <td>{fmt(c.seguroVehicular)}</td>
+                            <td>{fmt(c.gps)}</td>
+                            <td>{fmt(c.portes)}</td>
+                            <td>{fmt(c.gastosAdm)}</td>
+                            <td className="flujo-negativo">{fmt(c.flujo)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="modal-detail-footer">
               <button className="btn-secondary" onClick={() => setSelectedSim(null)}>Cerrar</button>
-              <button
-                className="btn-danger-outline"
-                onClick={() => {
-                  setSelectedSim(null);
-                  requestDelete(selectedSim.id);
-                }}
-              >
-                <Trash2 size={15} /> Eliminar simulación
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn-secondary" onClick={handleExportSim}>
+                  <Download size={15} /> Descargar PDF
+                </button>
+                <button
+                  className="btn-danger-outline"
+                  onClick={() => {
+                    setSelectedSim(null);
+                    requestDelete(selectedSim.id);
+                  }}
+                >
+                  <Trash2 size={15} /> Eliminar simulación
+                </button>
+              </div>
             </div>
           </div>
         </div>
