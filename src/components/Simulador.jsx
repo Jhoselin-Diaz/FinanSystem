@@ -53,6 +53,7 @@ export default function Simulador({ addNotification }) {
   // Results State
   const [resultado, setResultado] = useState(null);
   const [errores, setErrores] = useState([]);
+  const [graciaMax, setGraciaMax] = useState(null); // límite de Configuración (gracia total + parcial)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,6 +76,7 @@ export default function Simulador({ addNotification }) {
         setCapitalizacion(cfg.capitalizacion_predeterminada || 'Mensual');
         setSeguroDesgravamen(cfg.seguro_desgravamen ?? '');
         setSeguroRiesgo(cfg.seguro_vehiculo ?? '');
+        if (cfg.periodo_gracia_max != null) setGraciaMax(parseInt(cfg.periodo_gracia_max));
         if (cfg.plazo_maximo) {
           setPlazo(cfg.plazo_maximo);
           setPlazoAniosStr(String(Math.round(parseFloat(cfg.plazo_maximo) / 12)));
@@ -216,6 +218,7 @@ export default function Simulador({ addNotification }) {
     if (pCI + pCF >= 100) errs.push('La suma de % cuota inicial y % cuota final debe ser menor a 100%.');
     if (gT < 0 || gP < 0) errs.push('Los meses de gracia no pueden ser negativos.');
     if (n && gT + gP >= n) errs.push('La gracia total + parcial debe ser menor al plazo (deben quedar meses con cuota).');
+    if (graciaMax != null && gT + gP > graciaMax) errs.push(`La gracia total + parcial no puede superar el máximo permitido en Configuración (${graciaMax} meses).`);
     if ((parseFloat(seguroDesgravamen) || 0) < 0 || (parseFloat(seguroRiesgo) || 0) < 0) errs.push('Los seguros no pueden ser negativos.');
     if ((parseFloat(cok) || 0) <= 0) errs.push('El COK debe ser mayor a 0.');
     return errs;
@@ -502,7 +505,10 @@ export default function Simulador({ addNotification }) {
               <div className="form-group">
                 <label>Gracia Parcial — P (meses)</label>
                 <input type="number" min="0" value={graciaParcial} onChange={(e) => setGraciaParcial(e.target.value)} />
-                <span className="help-text">Paga solo interés y seguros; el saldo no cambia</span>
+                <span className="help-text">
+                  Paga solo interés y seguros; el saldo no cambia
+                  {graciaMax != null ? ` · Máximo T+P: ${graciaMax} meses (Configuración)` : ''}
+                </span>
               </div>
             </div>
           </div>
