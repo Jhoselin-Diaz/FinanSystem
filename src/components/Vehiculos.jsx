@@ -16,13 +16,13 @@ const FORM_VACIO = {
 
 const simboloMoneda = (m) => (m === 'Dólares (US$)' ? 'US$' : 'S/');
 
-// Miniatura con fallback local: si la URL falla, muestra un ícono
-function VehiculoThumb({ url, alt }) {
+// Imagen con fallback local: si la URL falla o no existe, muestra un ícono
+function VehiculoThumb({ url, alt, className, iconSize = 18 }) {
   const [failed, setFailed] = React.useState(false);
   if (!url || failed) {
-    return <div className="veh-thumb veh-thumb-placeholder"><Car size={18} /></div>;
+    return <div className={`${className} veh-thumb-placeholder`}><Car size={iconSize} /></div>;
   }
-  return <img className="veh-thumb" src={url} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
+  return <img className={className} src={url} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
 }
 
 export default function Vehiculos() {
@@ -214,56 +214,43 @@ export default function Vehiculos() {
         </button>
       </div>
 
-      <div className="table-container">
-        <table className="vehiculos-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th></th>
-              <th>Marca</th>
-              <th>Modelo</th>
-              <th>Año</th>
-              <th>Tipo de vehículo</th>
-              <th>Precio</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan="9" style={{textAlign: 'center', padding: '2rem'}}>Cargando...</td></tr>
-            ) : filteredVehiculos.length === 0 ? (
-              <tr><td colSpan="9" style={{textAlign: 'center', padding: '2rem'}}>No hay vehículos registrados que coincidan con los filtros.</td></tr>
-            ) : (
-              filteredVehiculos.map((vehiculo) => (
-                <tr key={vehiculo.id}>
-                  <td style={{color: '#64748b'}}>{String(vehiculo.id).padStart(5, '0')}</td>
-                  <td><VehiculoThumb url={vehiculo.imagen_url} alt={`${vehiculo.marca} ${vehiculo.modelo}`} /></td>
-                  <td className="font-medium">{vehiculo.marca}</td>
-                  <td>{vehiculo.modelo}</td>
-                  <td>{vehiculo.anio}</td>
-                  <td>{vehiculo.tipo_vehiculo}</td>
-                  <td>{simboloMoneda(vehiculo.moneda)} {parseFloat(vehiculo.precio).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                  <td>
-                    <span className={`status-badge ${vehiculo.estado === 'Activo' ? 'status-active' : 'status-inactive'}`}>
-                      {vehiculo.estado}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="btn-icon text-primary" onClick={() => openModal(vehiculo)}>
-                        <Edit2 size={16} />
-                      </button>
-                      <button className="btn-icon text-danger" onClick={() => handleDelete(vehiculo.id)}>
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="vehiculos-grid">
+        {loading ? (
+          <div className="vehiculos-empty">Cargando...</div>
+        ) : filteredVehiculos.length === 0 ? (
+          <div className="vehiculos-empty">No hay vehículos registrados que coincidan con los filtros.</div>
+        ) : (
+          filteredVehiculos.map((vehiculo) => (
+            <div className="vehiculo-card" key={vehiculo.id}>
+              <div className="vehiculo-card-image">
+                <VehiculoThumb
+                  url={vehiculo.imagen_url}
+                  alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+                  className="vehiculo-card-img"
+                  iconSize={32}
+                />
+                <span className={`status-badge ${vehiculo.estado === 'Activo' ? 'status-active' : 'status-inactive'}`}>
+                  {vehiculo.estado}
+                </span>
+              </div>
+              <div className="vehiculo-card-body">
+                <h3>{vehiculo.marca} {vehiculo.modelo}</h3>
+                <p className="vehiculo-card-meta">{vehiculo.anio} · {vehiculo.tipo_vehiculo}</p>
+                <div className="vehiculo-card-price">
+                  {simboloMoneda(vehiculo.moneda)} {parseFloat(vehiculo.precio).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </div>
+              </div>
+              <div className="vehiculo-card-actions">
+                <button className="btn-outline-sm" onClick={() => openModal(vehiculo)}>
+                  <Edit2 size={14} /> Editar
+                </button>
+                <button className="btn-icon-danger" onClick={() => handleDelete(vehiculo.id)}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="pagination">
@@ -326,6 +313,16 @@ export default function Vehiculos() {
                 <div className="form-group half-width">
                   <label>Imagen (URL, opcional)</label>
                   <input type="url" name="imagen_url" value={formData.imagen_url} onChange={handleInputChange} placeholder="https://..." />
+                  <div className="imagen-preview">
+                    {formData.imagen_url?.trim() ? (
+                      <img src={formData.imagen_url} alt="Vista previa" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    ) : (
+                      <div className="imagen-preview-empty">
+                        <Car size={22} />
+                        Vista previa de la imagen
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="form-group half-width">
                   <label>Estado</label>

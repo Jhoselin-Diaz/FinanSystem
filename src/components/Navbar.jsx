@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, ChevronDown, User, LogOut, Settings } from 'lucide-react';
+import { Bell, ChevronDown, User, LogOut, Settings, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './Navbar.css';
 
@@ -71,7 +71,7 @@ export default function Navbar({ notifications, onClearNotification, onLogout, s
                 ) : (
                   notifications.map((n, i) => (
                     <div key={i} className="notif-item">
-                      <div className="notif-icon">✅</div>
+                      <div className="notif-icon"><CheckCircle2 size={18} /></div>
                       <div className="notif-body">
                         <p className="notif-title">{n.title}</p>
                         <p className="notif-desc">{n.description}</p>

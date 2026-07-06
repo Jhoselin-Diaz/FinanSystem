@@ -151,50 +151,128 @@
   background-color: #f8fafc;
 }
 
-/* Table */
-.table-container {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow-x: auto;
+/* Catálogo de vehículos (grid de tarjetas) */
+.vehiculos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
-.vehiculos-table {
+.vehiculos-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #94a3b8;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.vehiculo-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vehiculo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.vehiculo-card-image {
+  position: relative;
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+  height: 170px;
 }
 
-.vehiculos-table th {
-  padding: 1rem 1.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #475569;
-  border-bottom: 1px solid #e2e8f0;
-  background-color: #ffffff;
+.vehiculo-card-image .status-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.vehiculos-table td {
-  padding: 1rem 1.5rem;
-  font-size: 0.9rem;
-  color: #334155;
-  border-bottom: 1px solid #e2e8f0;
+.vehiculo-card-body {
+  padding: 1rem 1.25rem 0.25rem;
+  flex: 1;
 }
 
-.vehiculos-table tr:last-child td {
-  border-bottom: none;
-}
-
-.font-medium {
-  font-weight: 500;
+.vehiculo-card-body h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
   color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.vehiculo-card-meta {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.vehiculo-card-price {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1d68b6;
+}
+
+.vehiculo-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+}
+
+.btn-outline-sm {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #1d68b6;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline-sm:hover {
+  background: #f0f7ff;
+  border-color: #1d68b6;
+}
+
+.btn-icon-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-icon-danger:hover {
+  background: #fee2e2;
 }
 
 .status-badge {
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -207,27 +285,6 @@
   background-color: #fee2e2;
   color: #991b1b;
 }
-
-.action-buttons {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.btn-icon:hover {
-  background-color: #f1f5f9;
-}
-
-.text-primary { color: #1d68b6; }
-.text-danger { color: #ef4444; }
 
 /* Pagination */
 .pagination {
@@ -373,20 +430,47 @@
   gap: 1rem;
 }
 
-/* Miniatura del vehículo */
-.veh-thumb {
-  width: 52px;
-  height: 36px;
+/* Imagen del vehículo en la tarjeta del catálogo */
+.vehiculo-card-img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
   display: block;
 }
 
-.veh-thumb-placeholder {
+.vehiculo-card-img.veh-thumb-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
   color: #94a3b8;
+}
+
+/* Vista previa de imagen en el formulario */
+.imagen-preview {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 130px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.imagen-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imagen-preview .imagen-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
 }

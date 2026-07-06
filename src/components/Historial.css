@@ -263,7 +263,7 @@
   background: white;
   border-radius: 14px;
   width: 100%;
-  max-width: 680px;
+  max-width: 1100px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -335,6 +335,9 @@
 }
 
 .detail-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.82rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -441,4 +444,70 @@
 
 .btn-danger-outline:hover {
   background: #fee2e2;
+}
+
+/* ========= Cronograma de pagos (dentro del modal de detalle) ========= */
+.cronograma-wrapper {
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.cronograma-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cronograma-table th {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+  color: #475569;
+  font-weight: 600;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  background: white;
+}
+
+.cronograma-table thead tr:nth-child(2) th {
+  top: 29px;
+}
+
+.cronograma-table .th-group {
+  background: #f0f7ff;
+  color: #1d68b6;
+  border-left: 1px solid #e2e8f0;
+}
+
+.cronograma-table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.cronograma-table td:first-child,
+.cronograma-table td:nth-child(2) {
+  text-align: center;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fila-cero {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.flujo-positivo {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.flujo-negativo {
+  color: #b91c1c;
 }

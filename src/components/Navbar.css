@@ -184,8 +184,11 @@
 }
 
 .notif-icon {
-  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  color: #16a34a;
   flex-shrink: 0;
+  margin-top: 0.15rem;
 }
 
 .notif-body {
