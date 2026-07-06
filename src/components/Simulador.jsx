@@ -17,26 +17,28 @@ export default function Simulador({ addNotification }) {
   const [entidadId, setEntidadId] = useState('');
 
   const [precioVehiculo, setPrecioVehiculo] = useState('');
-  const [cuotaInicial, setCuotaInicial] = useState('');
-  
+  const [pctCuotaInicial, setPctCuotaInicial] = useState('');       // pCI (% del precio)
+  const [porcentajeCuotaFinal, setPorcentajeCuotaFinal] = useState(''); // pCF (% del precio)
+
   const [tipoTasa, setTipoTasa] = useState('Efectiva Anual (TEA)');
   const [tasaInteres, setTasaInteres] = useState('');
   const [moneda, setMoneda] = useState('Soles (S/)');
+  const [monedaBloqueada, setMonedaBloqueada] = useState(false);    // fijada por el vehículo
   const [capitalizacion, setCapitalizacion] = useState('Mensual');
   const [plazo, setPlazo] = useState('');
   const [graciaTotal, setGraciaTotal] = useState('');
   const [graciaParcial, setGraciaParcial] = useState('');
-  const [porcentajeCuotaFinal, setPorcentajeCuotaFinal] = useState('');
 
   const [seguroDesgravamen, setSeguroDesgravamen] = useState('');
   const [periodoSegDes, setPeriodoSegDes] = useState('Anual');
-  const [seguroVehicular, setSeguroVehicular] = useState('');
+  const [seguroRiesgo, setSeguroRiesgo] = useState('');
 
+  // Costes/gastos iniciales (mismos conceptos del modelo, se financian en el préstamo)
+  const [costesNotariales, setCostesNotariales] = useState('');
+  const [costesRegistrales, setCostesRegistrales] = useState('');
   const [tasacion, setTasacion] = useState('');
-  const [estudioTitulos, setEstudioTitulos] = useState('');
-  const [notaria, setNotaria] = useState('');
-  const [certificadoRegistro, setCertificadoRegistro] = useState('');
-  const [impresionContrato, setImpresionContrato] = useState('');
+  const [comisionEstudio, setComisionEstudio] = useState('');
+  const [comisionActivacion, setComisionActivacion] = useState('');
 
   // Costos periódicos: afectan el flujo de caja, la TIR y la TCEA
   const [gpsMensual, setGpsMensual] = useState('');
@@ -46,13 +48,14 @@ export default function Simulador({ addNotification }) {
 
   // Results State
   const [resultado, setResultado] = useState(null);
+  const [errores, setErrores] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const [resClientes, resVehiculos, resEntidades, resCfg] = await Promise.all([
         supabase.from('clientes').select('id, nombre_completo, dni'),
-        supabase.from('vehiculos').select('id, marca, modelo, precio'),
-        supabase.from('entidades_financieras').select('id, nombre, tea_soles_min, plazo_maximo, periodo_gracia_min'),
+        supabase.from('vehiculos').select('*'),
+        supabase.from('entidades_financieras').select('id, nombre, tea_soles_min, tea_dolares_min, plazo_maximo, periodo_gracia_min'),
         supabase.from('configuracion').select('*').limit(1).single()
       ]);
 
@@ -67,14 +70,15 @@ export default function Simulador({ addNotification }) {
         setMoneda(cfg.moneda_predeterminada || 'Soles (S/)');
         setCapitalizacion(cfg.capitalizacion_predeterminada || 'Mensual');
         setSeguroDesgravamen(cfg.seguro_desgravamen ?? '');
-        setSeguroVehicular(cfg.seguro_vehiculo ?? '');
-        setGastosAdmMensual(cfg.gastos_administrativos ?? '');
+        setSeguroRiesgo(cfg.seguro_vehiculo ?? '');
         if (cfg.plazo_maximo) setPlazo(cfg.plazo_maximo);
-        if (cfg.periodo_gracia_max) setGraciaTotal(cfg.periodo_gracia_max);
       }
     };
     fetchData();
   }, []);
+
+  const esUSD = moneda === 'Dólares (US$)';
+  const currencySymbol = esUSD ? 'US$' : 'S/';
 
   const handleVehiculoChange = (e) => {
     const id = e.target.value;
@@ -82,8 +86,25 @@ export default function Simulador({ addNotification }) {
     const veh = vehiculos.find(v => v.id.toString() === id);
     if (veh) {
       setPrecioVehiculo(veh.precio);
+      // La moneda de la operación es la del vehículo (sin conversión de tipo de cambio)
+      if (veh.moneda) {
+        setMoneda(veh.moneda);
+        setMonedaBloqueada(true);
+        aplicarTasaEntidad(entidadId, veh.moneda);
+      } else {
+        setMonedaBloqueada(false);
+      }
     } else {
       setPrecioVehiculo('');
+      setMonedaBloqueada(false);
+    }
+  };
+
+  const aplicarTasaEntidad = (id, monedaSel) => {
+    const ent = entidades.find(ent => ent.id === id);
+    if (ent) {
+      const isUSD = (monedaSel || moneda) === 'Dólares (US$)';
+      setTasaInteres((isUSD ? ent.tea_dolares_min : ent.tea_soles_min) || ent.tea_soles_min);
     }
   };
 
@@ -92,50 +113,64 @@ export default function Simulador({ addNotification }) {
     setEntidadId(id);
     const ent = entidades.find(ent => ent.id === id);
     if (ent) {
-      // Select rate based on selected currency
-      const isUSD = moneda === 'Dólares (US$)';
-      const teaField = isUSD ? 'tea_dolares_min' : 'tea_soles_min';
-      setTasaInteres(ent[teaField] || ent.tea_soles_min);
+      aplicarTasaEntidad(id);
       setPlazo(ent.plazo_maximo);
-      setGraciaTotal(ent.periodo_gracia_min);
     } else {
       setTasaInteres('');
       setPlazo('');
-      setGraciaTotal('');
     }
   };
 
   const handleMonedaChange = (e) => {
     setMoneda(e.target.value);
-    // Re-load tasa from selected entidad if present
-    if (entidadId) {
-      const ent = entidades.find(ent => ent.id === entidadId);
-      if (ent) {
-        const isUSD = e.target.value === 'Dólares (US$)';
-        const teaField = isUSD ? 'tea_dolares_min' : 'tea_soles_min';
-        setTasaInteres(ent[teaField] || ent.tea_soles_min);
-      }
-    }
+    if (entidadId) aplicarTasaEntidad(entidadId, e.target.value);
   };
 
   const getTotalGastos = () => {
-    return (parseFloat(tasacion) || 0) + 
-           (parseFloat(estudioTitulos) || 0) + 
-           (parseFloat(notaria) || 0) + 
-           (parseFloat(certificadoRegistro) || 0) + 
-           (parseFloat(impresionContrato) || 0);
+    return (parseFloat(costesNotariales) || 0) +
+           (parseFloat(costesRegistrales) || 0) +
+           (parseFloat(tasacion) || 0) +
+           (parseFloat(comisionEstudio) || 0) +
+           (parseFloat(comisionActivacion) || 0);
+  };
+
+  const montoCuotaInicial = (parseFloat(precioVehiculo) || 0) * ((parseFloat(pctCuotaInicial) || 0) / 100);
+  const montoCuotaFinal = (parseFloat(precioVehiculo) || 0) * ((parseFloat(porcentajeCuotaFinal) || 0) / 100);
+
+  const validar = () => {
+    const errs = [];
+    const pv = parseFloat(precioVehiculo);
+    const pCI = parseFloat(pctCuotaInicial) || 0;
+    const pCF = parseFloat(porcentajeCuotaFinal) || 0;
+    const n = parseInt(plazo);
+    const gT = parseInt(graciaTotal) || 0;
+    const gP = parseInt(graciaParcial) || 0;
+    const tasa = parseFloat(tasaInteres);
+
+    if (!pv || pv <= 0) errs.push('Selecciona un vehículo con precio válido.');
+    if (!tasa || tasa <= 0 || tasa > 200) errs.push('La tasa de interés debe ser mayor a 0.');
+    if (!n || n <= 0 || !Number.isInteger(n)) errs.push('El plazo debe ser un número entero de meses mayor a 0.');
+    if (pCI < 0 || pCF < 0) errs.push('Los porcentajes de cuota inicial y final no pueden ser negativos.');
+    if (pCI + pCF >= 100) errs.push('La suma de % cuota inicial y % cuota final debe ser menor a 100%.');
+    if (gT < 0 || gP < 0) errs.push('Los meses de gracia no pueden ser negativos.');
+    if (n && gT + gP >= n) errs.push('La gracia total + parcial debe ser menor al plazo (deben quedar meses con cuota).');
+    if ((parseFloat(seguroDesgravamen) || 0) < 0 || (parseFloat(seguroRiesgo) || 0) < 0) errs.push('Los seguros no pueden ser negativos.');
+    if ((parseFloat(cok) || 0) <= 0) errs.push('El COK debe ser mayor a 0.');
+    return errs;
   };
 
   const handleCalculate = (e) => {
     e.preventDefault();
-    if (!precioVehiculo || !tasaInteres || !plazo) {
-      alert("Por favor completa los datos básicos (Precio, Tasa y Plazo)");
+    const errs = validar();
+    setErrores(errs);
+    if (errs.length > 0) {
+      setResultado(null);
       return;
     }
 
     const result = calcularCronograma({
       precioVehiculo: parseFloat(precioVehiculo),
-      cuotaInicial: parseFloat(cuotaInicial) || 0,
+      cuotaInicial: montoCuotaInicial,
       porcentajeCuotaFinal: parseFloat(porcentajeCuotaFinal) || 0,
       tasaInteres: parseFloat(tasaInteres),
       tipoTasa,
@@ -145,7 +180,7 @@ export default function Simulador({ addNotification }) {
       graciaParcial: parseInt(graciaParcial) || 0,
       seguroDesgravamen: parseFloat(seguroDesgravamen) || 0,
       periodoSeguroDesgravamen: periodoSegDes,
-      seguroVehiculoAnual: parseFloat(seguroVehicular) || 0,
+      seguroVehiculoAnual: parseFloat(seguroRiesgo) || 0,
       gastosIniciales: getTotalGastos(),
       gpsMensual: parseFloat(gpsMensual) || 0,
       portesMensual: parseFloat(portesMensual) || 0,
@@ -162,32 +197,55 @@ export default function Simulador({ addNotification }) {
       return;
     }
 
+    const basePayload = {
+      cliente_id: clienteId,
+      vehiculo_id: parseInt(vehiculoId),
+      entidad_id: entidadId,
+      precio_vehiculo: parseFloat(precioVehiculo),
+      cuota_inicial: montoCuotaInicial,
+      tipo_tasa: tipoTasa,
+      tasa_interes: parseFloat(tasaInteres),
+      capitalizacion: tipoTasa === 'Nominal Anual (TNA)' ? capitalizacion : null,
+      moneda: moneda,
+      plazo: parseInt(plazo),
+      periodo_gracia: (parseInt(graciaTotal) || 0) + (parseInt(graciaParcial) || 0),
+      tipo_gracia: `T:${parseInt(graciaTotal) || 0} P:${parseInt(graciaParcial) || 0}`,
+      seguro_desgravamen: parseFloat(seguroDesgravamen) || 0,
+      seguro_vehicular: parseFloat(seguroRiesgo) || 0,
+      gastos_iniciales: getTotalGastos(),
+      cuota_mensual: resultado.cuotaMensual,
+      tcea: resultado.tcea,
+      van: resultado.van,
+      tir: resultado.tirMensual
+    };
+
+    const extendido = {
+      ...basePayload,
+      porcentaje_cuota_inicial: parseFloat(pctCuotaInicial) || 0,
+      porcentaje_cuota_final: parseFloat(porcentajeCuotaFinal) || 0,
+      cuota_final: resultado.cuotaFinal,
+      gracia_total: parseInt(graciaTotal) || 0,
+      gracia_parcial: parseInt(graciaParcial) || 0,
+      cok: parseFloat(cok) || 50,
+      gps_mensual: parseFloat(gpsMensual) || 0,
+      portes_mensual: parseFloat(portesMensual) || 0,
+      gastos_adm_mensual: parseFloat(gastosAdmMensual) || 0,
+      tea: resultado.tea,
+      tem: resultado.tem
+    };
+
     try {
-      const { error } = await supabase.from('simulaciones').insert([{
-        cliente_id: clienteId,
-        vehiculo_id: parseInt(vehiculoId),
-        entidad_id: entidadId,
-        precio_vehiculo: parseFloat(precioVehiculo),
-        cuota_inicial: parseFloat(cuotaInicial) || 0,
-        tipo_tasa: tipoTasa,
-        tasa_interes: parseFloat(tasaInteres),
-        capitalizacion: tipoTasa === 'Nominal Anual (TNA)' ? capitalizacion : null,
-        moneda: moneda,
-        plazo: parseInt(plazo),
-        periodo_gracia: (parseInt(graciaTotal) || 0) + (parseInt(graciaParcial) || 0),
-        tipo_gracia: `T:${parseInt(graciaTotal) || 0} P:${parseInt(graciaParcial) || 0}`,
-        seguro_desgravamen: parseFloat(seguroDesgravamen) || 0,
-        seguro_vehicular: parseFloat(seguroVehicular) || 0,
-        gastos_iniciales: getTotalGastos(),
-        cuota_mensual: resultado.cuotaMensual,
-        tcea: resultado.tcea,
-        van: resultado.van,
-        tir: resultado.tirMensual
-      }]);
+      let { error } = await supabase.from('simulaciones').insert([extendido]);
+
+      // Compatibilidad: si la BD aún no tiene las columnas nuevas, guarda lo básico
+      if (error && /column|schema/i.test(error.message)) {
+        console.warn('Columnas extendidas no disponibles, guardando payload base. Ejecuta supabase-migration.sql. Detalle:', error.message);
+        ({ error } = await supabase.from('simulaciones').insert([basePayload]));
+        if (!error) alert('Simulación guardada en modo compatible. Ejecuta supabase-migration.sql en Supabase para guardar también cuotón, gracia T/P, COK y costos periódicos.');
+      }
 
       if (error) throw error;
 
-      // Fire notification
       const clienteObj = clientes.find(c => c.id === clienteId);
       const vehiculoObj = vehiculos.find(v => v.id.toString() === vehiculoId.toString());
       const entidadObj = entidades.find(e => e.id === entidadId);
@@ -202,180 +260,194 @@ export default function Simulador({ addNotification }) {
     }
   };
 
+  const fmt = (n, dec = 2) => (n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
   const handleExport = () => {
     if (!resultado) {
       alert("Primero calcula una simulación antes de exportar.");
       return;
     }
 
-    const pdfCurrencySymbol = moneda === 'Dólares (US$)' ? 'US$' : 'S/';
+    const sym = currencySymbol;
     const clienteObj = clientes.find(c => c.id === clienteId);
     const vehiculoObj = vehiculos.find(v => v.id.toString() === vehiculoId.toString());
     const entidadObj  = entidades.find(e => e.id === entidadId);
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
-    const margin = 14;
+    const margin = 12;
 
     // ── Header band ──────────────────────────────────────────────
     doc.setFillColor(29, 104, 182);
-    doc.rect(0, 0, pageW, 28, 'F');
+    doc.rect(0, 0, pageW, 24, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
-    doc.text('FinanSystem', margin, 12);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Simulador de Crédito Vehicular', margin, 19);
+    doc.text('FinanSystem', margin, 11);
     doc.setFontSize(9);
-    doc.text(`Generado: ${new Date().toLocaleDateString('es-PE')}`, pageW - margin, 19, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Compra Inteligente — Crédito Vehicular (método francés vencido ordinario)', margin, 17);
+    doc.text(`Generado: ${new Date().toLocaleDateString('es-PE')}`, pageW - margin, 17, { align: 'right' });
 
-    // ── Section helper ────────────────────────────────────────────
-    let y = 36;
+    let y = 31;
     const sectionTitle = (title) => {
       doc.setFillColor(239, 246, 255);
-      doc.rect(margin, y, pageW - margin * 2, 7, 'F');
+      doc.rect(margin, y, pageW - margin * 2, 6, 'F');
       doc.setTextColor(29, 104, 182);
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(title, margin + 2, y + 5);
+      doc.text(title, margin + 2, y + 4.2);
       doc.setTextColor(30, 41, 59);
       doc.setFont('helvetica', 'normal');
-      y += 10;
+      y += 9;
     };
 
-    const row2col = (label1, val1, label2, val2) => {
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(label1, margin, y);
-      doc.setTextColor(30, 41, 59);
-      doc.setFont('helvetica', 'bold');
-      doc.text(String(val1), margin + 42, y);
-      if (label2) {
-        doc.setFont('helvetica', 'normal');
+    const row3col = (pairs) => {
+      doc.setFontSize(7.5);
+      const colW = (pageW - margin * 2) / 3;
+      pairs.forEach(([label, val], i) => {
+        if (!label) return;
+        const x = margin + i * colW;
         doc.setTextColor(100, 116, 139);
-        doc.text(label2, pageW / 2, y);
+        doc.text(label, x, y);
         doc.setTextColor(30, 41, 59);
         doc.setFont('helvetica', 'bold');
-        doc.text(String(val2 ?? '—'), pageW / 2 + 42, y);
-      }
-      doc.setFont('helvetica', 'normal');
-      y += 6;
+        doc.text(String(val ?? '—'), x + 40, y);
+        doc.setFont('helvetica', 'normal');
+      });
+      y += 5;
     };
 
-    // ── Section 1: Datos principales ─────────────────────────────
     sectionTitle('1. Datos Principales');
-    row2col('Cliente:', clienteObj?.nombre_completo || '—', 'DNI:', clienteObj?.dni || '—');
-    row2col('Vehículo:', vehiculoObj ? `${vehiculoObj.marca} ${vehiculoObj.modelo}` : '—', 'Entidad:', entidadObj?.nombre || '—');
-    y += 3;
+    row3col([['Cliente:', clienteObj?.nombre_completo || '—'], ['DNI:', clienteObj?.dni || '—'], ['Entidad:', entidadObj?.nombre || '—']]);
+    row3col([['Vehículo:', vehiculoObj ? `${vehiculoObj.marca} ${vehiculoObj.modelo}` : '—'], ['Moneda:', moneda], ['Frecuencia de pago:', '30 días (360 días/año)']]);
+    y += 2;
 
-    // ── Section 2: Configuración ──────────────────────────────────
-    sectionTitle('2. Configuración del Crédito');
-    row2col('Precio vehículo:', `${pdfCurrencySymbol} ${parseFloat(precioVehiculo).toFixed(2)}`, 'Cuota inicial:', `${pdfCurrencySymbol} ${parseFloat(cuotaInicial || 0).toFixed(2)} (${pctInicial} %)`);
-    row2col('Cuota final (cuotón):', `${porcentajeCuotaFinal || 0} % = ${pdfCurrencySymbol} ${resultado.cuotaFinal.toFixed(2)}`, 'Monto del préstamo:', `${pdfCurrencySymbol} ${resultado.prestamo.toFixed(2)}`);
-    row2col('Tipo de tasa:', tipoTasa, 'Tasa de interés:', `${tasaInteres} %`);
-    row2col('Moneda:', moneda, 'Capitalización:', capitalizacion);
-    row2col('Plazo:', `${plazo} meses`, 'Gracia:', `Total: ${graciaTotal || 0} / Parcial: ${graciaParcial || 0} meses`);
-    row2col('Seguro Desgravamen:', `${seguroDesgravamen || 0} % ${periodoSegDes.toLowerCase()}`, 'Seguro Vehicular:', `${seguroVehicular || 0} % anual`);
-    row2col('Gastos Iniciales (financiados):', `${pdfCurrencySymbol} ${getTotalGastos().toFixed(2)}`, 'GPS / Portes / G.Adm:', `${pdfCurrencySymbol} ${(parseFloat(gpsMensual) || 0).toFixed(2)} / ${(parseFloat(portesMensual) || 0).toFixed(2)} / ${(parseFloat(gastosAdmMensual) || 0).toFixed(2)} mensual`);
-    row2col('COK (VAN):', `${resultado.cokAnual} % anual`, 'Saldo regular / VP cuotón:', `${pdfCurrencySymbol} ${resultado.saldoRegularInicial.toFixed(2)} / ${resultado.saldoCuotonInicial.toFixed(2)}`);
-    y += 3;
+    sectionTitle('2. Datos del Crédito');
+    row3col([
+      ['Precio de venta (PV):', `${sym} ${fmt(parseFloat(precioVehiculo))}`],
+      ['% Cuota inicial (pCI):', `${pctCuotaInicial || 0} % = ${sym} ${fmt(montoCuotaInicial)}`],
+      ['% Cuota final (pCF):', `${porcentajeCuotaFinal || 0} % = ${sym} ${fmt(resultado.cuotaFinal)}`],
+    ]);
+    row3col([
+      ['Tipo de tasa:', tipoTasa],
+      ['Tasa de interés:', `${tasaInteres} %`],
+      ['Capitalización:', tipoTasa === 'Nominal Anual (TNA)' ? capitalizacion : 'No aplica (TEA)'],
+    ]);
+    row3col([
+      ['Plazo (N):', `${plazo} meses (${(parseInt(plazo) / 12).toFixed(1)} años)`],
+      ['Gracia:', `Total: ${graciaTotal || 0} / Parcial: ${graciaParcial || 0} meses`],
+      ['COK:', `${resultado.cokAnual} % anual (COKi ${fmt(resultado.cokMensual, 5)} %)`],
+    ]);
+    row3col([
+      ['Seg. desgravamen:', `${seguroDesgravamen || 0} % ${periodoSegDes.toLowerCase()} (per. ${fmt(resultado.pSegDesPer, 4)} %)`],
+      ['Seg. riesgo:', `${seguroRiesgo || 0} % anual (${sym} ${fmt(resultado.segRiePer)} /mes)`],
+      ['GPS / Portes / G.Adm:', `${sym} ${fmt(parseFloat(gpsMensual) || 0)} / ${fmt(parseFloat(portesMensual) || 0)} / ${fmt(parseFloat(gastosAdmMensual) || 0)} mensual`],
+    ]);
+    row3col([
+      ['Gastos iniciales:', `${sym} ${fmt(getTotalGastos())} (financiados)`],
+      ['Monto del préstamo:', `${sym} ${fmt(resultado.prestamo)}`],
+      ['Saldo a financiar c/ cuotas:', `${sym} ${fmt(resultado.saldoRegularInicial)}`],
+    ]);
+    y += 2;
 
-    // ── Section 3: Resultados ─────────────────────────────────────
-    sectionTitle('3. Resultados de la Simulación');
-
-    // Result cards as a row
+    sectionTitle('3. Resultados e Indicadores');
     const cards = [
-      { label: 'Cuota Mensual Total', value: `${pdfCurrencySymbol} ${resultado.cuotaMensual.toFixed(2)}` },
-      { label: 'Cuotón Final', value: `${pdfCurrencySymbol} ${resultado.cuotaFinal.toFixed(2)}` },
-      { label: 'TEM', value: `${resultado.tem.toFixed(4)} %` },
-      { label: 'TIR Mensual', value: `${resultado.tirMensual.toFixed(4)} %` },
-      { label: 'TCEA', value: `${resultado.tcea.toFixed(4)} %` },
-      { label: `VAN (COK ${resultado.cokAnual}%)`, value: `${pdfCurrencySymbol} ${resultado.van.toFixed(2)}` },
+      { label: 'Cuota Mensual Total', value: `${sym} ${fmt(resultado.cuotaMensual)}` },
+      { label: 'Cuotón Final (CF)', value: `${sym} ${fmt(resultado.cuotaFinal)}` },
+      { label: 'TEA', value: `${fmt(resultado.tea, 4)} %` },
+      { label: 'TEM', value: `${fmt(resultado.tem, 4)} %` },
+      { label: 'TIR Mensual', value: `${fmt(resultado.tirMensual, 4)} %` },
+      { label: 'TCEA', value: `${fmt(resultado.tcea, 4)} %` },
+      { label: `VAN (COK ${resultado.cokAnual}%)`, value: `${sym} ${fmt(resultado.van)}` },
     ];
     const cardW = (pageW - margin * 2) / cards.length;
     cards.forEach((card, i) => {
       const cx = margin + i * cardW;
       doc.setFillColor(224, 242, 254);
-      doc.roundedRect(cx, y, cardW - 2, 14, 2, 2, 'F');
+      doc.roundedRect(cx, y, cardW - 2, 13, 2, 2, 'F');
       doc.setTextColor(100, 116, 139);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.text(card.label, cx + (cardW - 2) / 2, y + 4.5, { align: 'center' });
+      doc.setFontSize(6.5);
+      doc.text(card.label, cx + (cardW - 2) / 2, y + 4.2, { align: 'center' });
       doc.setTextColor(29, 104, 182);
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(card.value, cx + (cardW - 2) / 2, y + 10.5, { align: 'center' });
+      doc.text(card.value, cx + (cardW - 2) / 2, y + 9.8, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
     });
-    doc.setFont('helvetica', 'normal');
-    y += 19;
+    y += 17;
 
-    // Desglose
     const totalPago = resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0);
-    row2col('Total Intereses:', `${pdfCurrencySymbol} ${resultado.totalIntereses.toFixed(2)}`, 'Total Seguros:', `${pdfCurrencySymbol} ${resultado.totalSeguros.toFixed(2)}`);
-    row2col('Total Amortización:', `${pdfCurrencySymbol} ${resultado.totalAmortizacion.toFixed(2)}`, 'Total Costos Periódicos:', `${pdfCurrencySymbol} ${resultado.totalCostosFijos.toFixed(2)}`);
-    row2col('Monto Total a Pagar:', `${pdfCurrencySymbol} ${totalPago.toFixed(2)}`, '', '');
-    y += 4;
-
-    // ── Section 4: Cronograma ─────────────────────────────────────
-    sectionTitle('4. Cronograma de Pagos');
-
-    const tableRows = resultado.cronograma.map(c => [
-      c.periodo,
-      c.gracia,
-      c.cuota.toFixed(2),
-      c.interes.toFixed(2),
-      c.amortizacion.toFixed(2),
-      c.seguroDesgravamen.toFixed(2),
-      c.seguroVehicular.toFixed(2),
-      c.costosFijos.toFixed(2),
-      c.saldo.toFixed(2),
-      c.saldoCuoton.toFixed(2),
-      c.flujo.toFixed(2)
+    row3col([
+      ['Total Intereses:', `${sym} ${fmt(resultado.totalIntereses)}`],
+      ['Total Amortización:', `${sym} ${fmt(resultado.totalAmortizacion)}`],
+      ['Total Seg. Desgravamen:', `${sym} ${fmt(resultado.totalSegDes)}`],
     ]);
+    row3col([
+      ['Total Seg. Riesgo:', `${sym} ${fmt(resultado.totalSegRie)}`],
+      ['Total GPS:', `${sym} ${fmt(resultado.totalGPS)}`],
+      ['Total Portes:', `${sym} ${fmt(resultado.totalPortes)}`],
+    ]);
+    row3col([
+      ['Total Gastos Adm.:', `${sym} ${fmt(resultado.totalGasAdm)}`],
+      ['Monto Total a Pagar:', `${sym} ${fmt(totalPago)}`],
+      ['', ''],
+    ]);
+    y += 3;
+
+    sectionTitle('4. Cronograma de Pagos (Cuotón + Cuota Regular)');
+
+    const n2 = (v) => (v === 0 ? '0.00' : v.toFixed(2));
+    const tableRows = [
+      ['0', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', resultado.prestamo.toFixed(2)],
+      ...resultado.cronograma.map(c => [
+        c.periodo,
+        c.gracia,
+        n2(c.siCuoton), n2(c.iCuoton), n2(c.amortCuoton), n2(c.segDesCuoton), n2(c.sfCuoton),
+        n2(c.saldoInicial), n2(c.interes), n2(c.cuota), n2(c.amortizacion), n2(c.seguroDesgravamen),
+        n2(c.seguroVehicular), n2(c.gps), n2(c.portes), n2(c.gastosAdm),
+        n2(c.saldo),
+        c.flujo.toFixed(2)
+      ])
+    ];
 
     autoTable(doc, {
       startY: y,
-      head: [['N°', 'P.G.', 'Cuota reg.', 'Interés', 'Amort.', 'Seg.Desg.', 'Seg.Veh.', 'Costos', 'Saldo Reg.', 'Saldo Cuotón', 'Flujo']],
+      head: [['Nº', 'PG', 'SICF', 'ICF', 'ACF', 'SegDesCF', 'SFCF', 'SI', 'Interés', 'Cuota', 'Amort.', 'SegDes', 'SegRie', 'GPS', 'Portes', 'GasAdm', 'SF', 'Flujo']],
       body: tableRows,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 6.5, cellPadding: 1.5 },
-      headStyles: { fillColor: [29, 104, 182], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 5.8, cellPadding: 1.1, halign: 'right' },
+      headStyles: { fillColor: [29, 104, 182], textColor: 255, fontStyle: 'bold', halign: 'center' },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: { 0: { halign: 'center' }, 1: { halign: 'center' } },
     });
 
-    // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        `FinanSystem — Simulación referencial. Pág. ${i}/${pageCount}`,
+        `FinanSystem — Simulación referencial (Compra Inteligente). Pág. ${i}/${pageCount}`,
         pageW / 2,
-        doc.internal.pageSize.getHeight() - 6,
+        doc.internal.pageSize.getHeight() - 5,
         { align: 'center' }
       );
     }
 
-    doc.save('simulacion_credito_vehicular.pdf');
+    doc.save('simulacion_compra_inteligente.pdf');
   };
-
-  const currencySymbol = moneda === 'Dólares (US$)' ? 'US$' : 'S/';
-  const pctInicial = precioVehiculo && cuotaInicial ? ((parseFloat(cuotaInicial) / parseFloat(precioVehiculo)) * 100).toFixed(2) : "0.00";
-  const montoCuotaFinal = precioVehiculo && porcentajeCuotaFinal ? (parseFloat(precioVehiculo) * parseFloat(porcentajeCuotaFinal) / 100).toFixed(2) : "0.00";
 
   return (
     <div className="simulador-container">
       <div className="simulador-header">
-        <h1>Simulador de Crédito Vehicular</h1>
-        <p>Calcula y analiza tu crédito vehicular de forma rápida y precisa.</p>
+        <h1>Simulador Compra Inteligente</h1>
+        <p>Crédito vehicular con cuotas reducidas y cuota final (cuotón) — método francés vencido ordinario, meses de 30 días.</p>
       </div>
 
       <div className="simulador-layout">
         <form className="left-panel" onSubmit={handleCalculate}>
-          
+
           <div className="section-card">
             <div className="section-title"><span className="circle-number">1</span> Selección de datos principales</div>
             <div className="form-grid-3">
@@ -393,7 +465,7 @@ export default function Simulador({ addNotification }) {
                 <select required value={vehiculoId} onChange={handleVehiculoChange}>
                   <option value="">Selecciona un vehículo</option>
                   {vehiculos.map(v => (
-                    <option key={v.id} value={v.id}>{v.marca} {v.modelo}</option>
+                    <option key={v.id} value={v.id}>{v.marca} {v.modelo}{v.moneda === 'Dólares (US$)' ? ' (US$)' : ''}</option>
                   ))}
                 </select>
               </div>
@@ -410,53 +482,54 @@ export default function Simulador({ addNotification }) {
           </div>
 
           <div className="section-card">
-            <div className="section-title"><span className="circle-number">2</span> Configuración del crédito</div>
+            <div className="section-title"><span className="circle-number">2</span> Datos del crédito</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>Valor de vehículo ({currencySymbol})</label>
+                <label>Precio de venta del activo — PV ({currencySymbol})</label>
                 <input type="number" readOnly value={precioVehiculo} />
               </div>
               <div className="form-group">
-                <label>Cuota inicial ({currencySymbol})</label>
-                <div className="input-with-addon">
-                  <input type="number" step="0.01" value={cuotaInicial} onChange={(e) => setCuotaInicial(e.target.value)} />
-                  <span className="addon">{pctInicial} %</span>
-                </div>
+                <label>Moneda</label>
+                <select value={moneda} onChange={handleMonedaChange} disabled={monedaBloqueada}>
+                  <option value="Soles (S/)">Soles (S/)</option>
+                  <option value="Dólares (US$)">Dólares (US$)</option>
+                </select>
+                {monedaBloqueada && <span className="help-text">Definida por la moneda del vehículo seleccionado</span>}
               </div>
 
               <div className="form-group">
-                <label>Cuota final / Cuotón (% del precio)</label>
+                <label>% Cuota inicial — pCI</label>
                 <div className="input-with-addon">
-                  <input type="number" step="0.01" min="0" value={porcentajeCuotaFinal} onChange={(e) => setPorcentajeCuotaFinal(e.target.value)} />
-                  <span className="addon">{currencySymbol} {montoCuotaFinal}</span>
+                  <input type="number" step="0.01" min="0" max="99" value={pctCuotaInicial} onChange={(e) => setPctCuotaInicial(e.target.value)} />
+                  <span className="addon">{currencySymbol} {fmt(montoCuotaInicial)}</span>
                 </div>
-                <span className="help-text">Se paga al final del crédito (Compra Inteligente)</span>
+              </div>
+              <div className="form-group">
+                <label>% Cuota final (cuotón) — pCF</label>
+                <div className="input-with-addon">
+                  <input type="number" step="0.01" min="0" max="99" value={porcentajeCuotaFinal} onChange={(e) => setPorcentajeCuotaFinal(e.target.value)} />
+                  <span className="addon">{currencySymbol} {fmt(montoCuotaFinal)}</span>
+                </div>
+                <span className="help-text">Se paga un mes después de la última cuota (mes N+1)</span>
               </div>
 
               <div className="form-group">
-                <label>Tipo de tasa</label>
+                <label>Tipo de tasa de interés</label>
                 <select value={tipoTasa} onChange={(e) => setTipoTasa(e.target.value)}>
                   <option value="Efectiva Anual (TEA)">Efectiva Anual (TEA)</option>
                   <option value="Nominal Anual (TNA)">Nominal Anual (TNA)</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>% de tipo de tasa</label>
+                <label>Tasa de interés (%)</label>
                 <div className="input-with-addon">
-                  <input type="number" step="0.01" required value={tasaInteres} onChange={(e) => setTasaInteres(e.target.value)} />
+                  <input type="number" step="0.0001" required value={tasaInteres} onChange={(e) => setTasaInteres(e.target.value)} />
                   <span className="addon">%</span>
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Moneda</label>
-                <select value={moneda} onChange={handleMonedaChange}>
-                  <option value="Soles (S/)">Soles (S/)</option>
-                  <option value="Dólares (US$)">Dólares (US$)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Capitalización (Solo para TNA)</label>
+                <label>Periodo de capitalización (solo TNA)</label>
                 <select value={capitalizacion} onChange={(e) => setCapitalizacion(e.target.value)} disabled={tipoTasa !== 'Nominal Anual (TNA)'}>
                   <option value="Diario">Diario</option>
                   <option value="Mensual">Mensual</option>
@@ -467,18 +540,22 @@ export default function Simulador({ addNotification }) {
                   <option value="Anual">Anual</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label>Plazo — N (meses)</label>
+                <div className="input-with-addon">
+                  <input type="number" required min="1" value={plazo} onChange={(e) => setPlazo(e.target.value)} />
+                  <span className="addon">{plazo ? `${(parseInt(plazo) / 12).toFixed(1)} años` : '—'}</span>
+                </div>
+                <span className="help-text">Frecuencia de pago: 30 días · Año de 360 días · 12 cuotas/año</span>
+              </div>
 
               <div className="form-group">
-                <label>Plazo (meses)</label>
-                <input type="number" required value={plazo} onChange={(e) => setPlazo(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Gracia Total (meses)</label>
+                <label>Gracia Total — T (meses)</label>
                 <input type="number" min="0" value={graciaTotal} onChange={(e) => setGraciaTotal(e.target.value)} />
                 <span className="help-text">Sin cuota; el interés se capitaliza</span>
               </div>
               <div className="form-group">
-                <label>Gracia Parcial (meses)</label>
+                <label>Gracia Parcial — P (meses)</label>
                 <input type="number" min="0" value={graciaParcial} onChange={(e) => setGraciaParcial(e.target.value)} />
                 <span className="help-text">Paga solo interés y seguros; el saldo no cambia</span>
               </div>
@@ -486,81 +563,87 @@ export default function Simulador({ addNotification }) {
           </div>
 
           <div className="section-card">
-            <div className="section-title"><span className="circle-number">3</span> Seguros (Vehiculares)</div>
+            <div className="section-title"><span className="circle-number">3</span> Seguros</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>Seguro de Desgravamen (%)</label>
+                <label>% Seguro de desgravamen — pSegDes</label>
                 <div style={{display: 'flex', gap: '0.5rem'}}>
-                  <input type="number" step="0.001" style={{flex: 1}} value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
+                  <input type="number" step="0.001" min="0" style={{flex: 1}} value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
                   <select style={{width: '110px'}} value={periodoSegDes} onChange={(e) => setPeriodoSegDes(e.target.value)}>
                     <option value="Anual">Anual</option>
                     <option value="Mensual">Mensual</option>
                   </select>
                 </div>
-                <span className="help-text">Sobre el saldo deudor. Ej: 0.588% anual = 0.049% mensual</span>
+                <span className="help-text">Sobre el saldo deudor. Ej: 0.049% mensual (= 0.588% anual)</span>
               </div>
               <div className="form-group">
-                <label>Seguro de Vehículo (% anual)</label>
-                <input type="number" step="0.01" value={seguroVehicular} onChange={(e) => setSeguroVehicular(e.target.value)} />
-                <span className="help-text">Protege el vehículo ante siniestros o daños</span>
+                <label>% Seguro de riesgo — pSegRie (% anual)</label>
+                <input type="number" step="0.001" min="0" value={seguroRiesgo} onChange={(e) => setSeguroRiesgo(e.target.value)} />
+                <span className="help-text">Seguro vehicular contra todo riesgo, sobre el precio del vehículo</span>
               </div>
             </div>
           </div>
 
           <div className="section-card">
-            <div className="section-title"><span className="circle-number">4</span> Gastos Iniciales</div>
+            <div className="section-title"><span className="circle-number">4</span> Costes/Gastos iniciales (se financian en el préstamo)</div>
             <div className="form-grid-3">
               <div className="form-group">
+                <label>Costes Notariales ({currencySymbol})</label>
+                <input type="number" step="0.01" min="0" value={costesNotariales} onChange={(e) => setCostesNotariales(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Costes Registrales ({currencySymbol})</label>
+                <input type="number" step="0.01" min="0" value={costesRegistrales} onChange={(e) => setCostesRegistrales(e.target.value)} />
+              </div>
+              <div className="form-group">
                 <label>Tasación ({currencySymbol})</label>
-                <input type="number" step="0.01" value={tasacion} onChange={(e) => setTasacion(e.target.value)} />
+                <input type="number" step="0.01" min="0" value={tasacion} onChange={(e) => setTasacion(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Estudio de Títulos ({currencySymbol})</label>
-                <input type="number" step="0.01" value={estudioTitulos} onChange={(e) => setEstudioTitulos(e.target.value)} />
+                <label>Comisión de estudio ({currencySymbol})</label>
+                <input type="number" step="0.01" min="0" value={comisionEstudio} onChange={(e) => setComisionEstudio(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Notaría ({currencySymbol})</label>
-                <input type="number" step="0.01" value={notaria} onChange={(e) => setNotaria(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Certificado Vehicular ({currencySymbol})</label>
-                <input type="number" step="0.01" value={certificadoRegistro} onChange={(e) => setCertificadoRegistro(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Impresión de Contrato ({currencySymbol})</label>
-                <input type="number" step="0.01" value={impresionContrato} onChange={(e) => setImpresionContrato(e.target.value)} />
+                <label>Comisión de activación ({currencySymbol})</label>
+                <input type="number" step="0.01" min="0" value={comisionActivacion} onChange={(e) => setComisionActivacion(e.target.value)} />
               </div>
             </div>
             <div style={{marginTop: '1rem', color: '#1d68b6', fontWeight: '600', fontSize: '0.9rem'}}>
-              Total Gastos Iniciales: {currencySymbol} {getTotalGastos().toFixed(2)} (se financian dentro del préstamo)
+              Total Gastos Iniciales: {currencySymbol} {fmt(getTotalGastos())} (se suman al monto del préstamo)
             </div>
           </div>
 
           <div className="section-card">
-            <div className="section-title"><span className="circle-number">5</span> Costos Periódicos y COK</div>
+            <div className="section-title"><span className="circle-number">5</span> Costes/Gastos periódicos y COK</div>
             <div className="form-grid">
               <div className="form-group">
                 <label>GPS ({currencySymbol} mensual)</label>
-                <input type="number" step="0.01" value={gpsMensual} onChange={(e) => setGpsMensual(e.target.value)} />
+                <input type="number" step="0.01" min="0" value={gpsMensual} onChange={(e) => setGpsMensual(e.target.value)} />
               </div>
               <div className="form-group">
                 <label>Portes ({currencySymbol} mensual)</label>
-                <input type="number" step="0.01" value={portesMensual} onChange={(e) => setPortesMensual(e.target.value)} />
+                <input type="number" step="0.01" min="0" value={portesMensual} onChange={(e) => setPortesMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Gastos Administrativos ({currencySymbol} mensual)</label>
-                <input type="number" step="0.01" value={gastosAdmMensual} onChange={(e) => setGastosAdmMensual(e.target.value)} />
+                <label>Gastos de Administración ({currencySymbol} mensual)</label>
+                <input type="number" step="0.01" min="0" value={gastosAdmMensual} onChange={(e) => setGastosAdmMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>COK (% anual)</label>
+                <label>Tasa de descuento — COK (% anual)</label>
                 <div className="input-with-addon">
-                  <input type="number" step="0.01" value={cok} onChange={(e) => setCok(e.target.value)} />
+                  <input type="number" step="0.01" min="0" value={cok} onChange={(e) => setCok(e.target.value)} />
                   <span className="addon">%</span>
                 </div>
-                <span className="help-text">Tasa de descuento para calcular el VAN</span>
+                <span className="help-text">Costo de oportunidad del capital, para calcular el VAN</span>
               </div>
             </div>
           </div>
+
+          {errores.length > 0 && (
+            <div className="errores-box">
+              {errores.map((err, i) => <div key={i}>• {err}</div>)}
+            </div>
+          )}
 
           <button type="submit" className="btn-calculate">
             <Calculator size={20} /> Calcular simulación
@@ -569,53 +652,55 @@ export default function Simulador({ addNotification }) {
 
         <div className="right-panel">
           <div className="section-card" style={{flex: 1}}>
-            <h3 style={{fontSize: '1.1rem', marginBottom: '1.5rem', color: '#1e293b'}}>Resultados de la simulación</h3>
-            
+            <h3 style={{fontSize: '1.1rem', marginBottom: '1.5rem', color: '#1e293b'}}>Resultados del financiamiento</h3>
+
             <div className="resultados-grid">
               <div className="resultado-box">
                 <h4>Cuota mensual total</h4>
-                <div className="val">
-                  {resultado ? `${currencySymbol} ${resultado.cuotaMensual.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
-                </div>
+                <div className="val">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaMensual)}` : '--'}</div>
               </div>
               <div className="resultado-box">
-                <h4>Cuotón final</h4>
-                <div className="val">
-                  {resultado ? `${currencySymbol} ${resultado.cuotaFinal.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
-                </div>
+                <h4>Cuotón final (CF)</h4>
+                <div className="val">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaFinal)}` : '--'}</div>
+              </div>
+              <div className="resultado-box">
+                <h4>TEA</h4>
+                <div className="val">{resultado ? `${fmt(resultado.tea, 4)} %` : '--'}</div>
               </div>
               <div className="resultado-box">
                 <h4>TEM</h4>
-                <div className="val">
-                  {resultado ? `${resultado.tem.toFixed(4)} %` : '--'}
-                </div>
+                <div className="val">{resultado ? `${fmt(resultado.tem, 4)} %` : '--'}</div>
               </div>
               <div className="resultado-box">
                 <h4>TIR mensual</h4>
-                <div className="val">
-                  {resultado ? `${resultado.tirMensual.toFixed(4)} %` : '--'}
-                </div>
+                <div className="val">{resultado ? `${fmt(resultado.tirMensual, 4)} %` : '--'}</div>
               </div>
               <div className="resultado-box">
                 <h4>TCEA</h4>
-                <div className="val">
-                  {resultado ? `${resultado.tcea.toFixed(4)} %` : '--'}
-                </div>
+                <div className="val">{resultado ? `${fmt(resultado.tcea, 4)} %` : '--'}</div>
               </div>
               <div className="resultado-box">
                 <h4>{resultado ? `VAN (COK ${resultado.cokAnual}%)` : 'VAN'}</h4>
-                <div className="val">
-                  {resultado ? `${currencySymbol} ${resultado.van.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
-                </div>
+                <div className="val">{resultado ? `${currencySymbol} ${fmt(resultado.van)}` : '--'}</div>
+              </div>
+              <div className="resultado-box">
+                <h4>TIR / COKi periodo</h4>
+                <div className="val" style={{fontSize: '0.95rem'}}>{resultado ? `${fmt(resultado.tirMensual, 3)}% / ${fmt(resultado.cokMensual, 3)}%` : '--'}</div>
               </div>
             </div>
 
             {resultado && (
-              <div style={{marginTop: '1rem', fontSize: '0.85rem', color: '#475569'}}>
-                Préstamo: <strong>{currencySymbol} {resultado.prestamo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
-                {' · '}Saldo regular: <strong>{currencySymbol} {resultado.saldoRegularInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
-                {' · '}VP cuotón: <strong>{currencySymbol} {resultado.saldoCuotonInicial.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
-                {' · '}Cuota regular (sin costos): <strong>{currencySymbol} {resultado.cuotaRegular.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+              <div className="detalle-financiamiento">
+                <div><span>Cuota inicial (CI)</span><strong>{currencySymbol} {fmt(resultado.cuotaInicial)}</strong></div>
+                <div><span>Monto del préstamo</span><strong>{currencySymbol} {fmt(resultado.prestamo)}</strong></div>
+                <div><span>Saldo a financiar con cuotas</span><strong>{currencySymbol} {fmt(resultado.saldoRegularInicial)}</strong></div>
+                <div><span>VP del cuotón</span><strong>{currencySymbol} {fmt(resultado.saldoCuotonInicial)}</strong></div>
+                <div><span>Nº cuotas por año (NCxA)</span><strong>{resultado.ncxa}</strong></div>
+                <div><span>Nº total de cuotas (N)</span><strong>{resultado.totalCuotas}{resultado.totalPeriodos > resultado.totalCuotas ? ` + cuotón en mes ${resultado.totalPeriodos}` : ''}</strong></div>
+                <div><span>% Seg. desgravamen periódico</span><strong>{fmt(resultado.pSegDesPer, 4)} %</strong></div>
+                <div><span>Seguro riesgo periódico</span><strong>{currencySymbol} {fmt(resultado.segRiePer)}</strong></div>
+                <div><span>Cuota francesa (inc. SegDes)</span><strong>{currencySymbol} {fmt(resultado.cuotaRegular)}</strong></div>
+                <div><span>Tasa de descuento periódica (COKi)</span><strong>{fmt(resultado.cokMensual, 5)} %</strong></div>
               </div>
             )}
 
@@ -624,87 +709,102 @@ export default function Simulador({ addNotification }) {
               <table className="cronograma-table">
                 <thead>
                   <tr>
-                    <th>Periodo</th>
-                    <th>P.G.</th>
-                    <th>Cuota regular</th>
-                    <th>Interés</th>
-                    <th>Amortización</th>
-                    <th>Seg. Desg.</th>
-                    <th>Seg. Veh.</th>
-                    <th>Costos</th>
-                    <th>Saldo regular</th>
-                    <th>Saldo cuotón</th>
-                    <th>Flujo</th>
+                    <th rowSpan="2">Nº</th>
+                    <th rowSpan="2">P.G.</th>
+                    <th colSpan="5" className="th-group">Cronograma del Cuotón (CF)</th>
+                    <th colSpan="6" className="th-group">Cronograma de la Cuota Regular</th>
+                    <th colSpan="4" className="th-group">Costes de operación</th>
+                    <th rowSpan="2">Flujo</th>
+                  </tr>
+                  <tr>
+                    <th title="Saldo Inicial Cuota Final">SICF</th>
+                    <th title="Interés Cuota Final">ICF</th>
+                    <th title="Amortización Cuota Final">ACF</th>
+                    <th title="Seguro desgravamen Cuota Final">SegDesCF</th>
+                    <th title="Saldo Final Cuota Final">SFCF</th>
+                    <th title="Saldo Inicial">SI</th>
+                    <th title="Interés">I</th>
+                    <th title="Cuota (incluye seguro desgravamen)">Cuota</th>
+                    <th title="Amortización">A</th>
+                    <th title="Seguro desgravamen">SegDes</th>
+                    <th title="Saldo Final para Cuota">SF</th>
+                    <th title="Seguro de riesgo">SegRie</th>
+                    <th>GPS</th>
+                    <th>Portes</th>
+                    <th title="Gastos administrativos">GasAdm</th>
                   </tr>
                 </thead>
                 <tbody>
                   {!resultado ? (
-                    <tr><td colSpan="11" style={{padding: '2rem'}}>Realiza una simulación para ver el cronograma</td></tr>
+                    <tr><td colSpan="18" style={{padding: '2rem'}}>Realiza una simulación para ver el cronograma</td></tr>
                   ) : (
-                    resultado.cronograma.map(c => (
-                      <tr key={c.periodo}>
-                        <td>{c.periodo}</td>
-                        <td>{c.gracia}</td>
-                        <td>{c.cuota.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.interes.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.amortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.seguroDesgravamen.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.seguroVehicular.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.costosFijos.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.saldo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.saldoCuoton.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                        <td>{c.flujo.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    <>
+                      <tr className="fila-cero">
+                        <td>0</td>
+                        <td colSpan="16" style={{textAlign: 'left', color: '#64748b'}}>Desembolso del préstamo</td>
+                        <td className="flujo-positivo">{fmt(resultado.prestamo)}</td>
                       </tr>
-                    ))
+                      {resultado.cronograma.map(c => (
+                        <tr key={c.periodo}>
+                          <td>{c.periodo}</td>
+                          <td>{c.gracia}</td>
+                          <td>{fmt(c.siCuoton)}</td>
+                          <td>{fmt(c.iCuoton)}</td>
+                          <td>{fmt(c.amortCuoton)}</td>
+                          <td>{fmt(c.segDesCuoton)}</td>
+                          <td>{fmt(c.sfCuoton)}</td>
+                          <td>{fmt(c.saldoInicial)}</td>
+                          <td>{fmt(c.interes)}</td>
+                          <td>{fmt(c.cuota)}</td>
+                          <td>{fmt(c.amortizacion)}</td>
+                          <td>{fmt(c.seguroDesgravamen)}</td>
+                          <td>{fmt(c.saldo)}</td>
+                          <td>{fmt(c.seguroVehicular)}</td>
+                          <td>{fmt(c.gps)}</td>
+                          <td>{fmt(c.portes)}</td>
+                          <td>{fmt(c.gastosAdm)}</td>
+                          <td className="flujo-negativo">{fmt(c.flujo)}</td>
+                        </tr>
+                      ))}
+                    </>
                   )}
                 </tbody>
               </table>
             </div>
 
             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2rem', marginBottom: '1rem', color: '#1d68b6', fontWeight: 'bold'}}>
-              <span className="circle-number" style={{width: '20px', height: '20px', fontSize: '0.75rem'}}>5</span>
-              Desglose completo de todos los costos asociados
+              <span className="circle-number" style={{width: '20px', height: '20px', fontSize: '0.75rem'}}>6</span>
+              Totales por concepto (transparencia de información)
             </div>
 
-            <div className="desglose-item">
-              <div className="desglose-label"><Info size={16}/> Total Intereses</div>
-              <div className="desglose-value">
-                <strong>{resultado ? `${currencySymbol} ${resultado.totalIntereses.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
-                <span>Costo del financiamiento</span>
+            {[
+              ['Total Intereses', resultado?.totalIntereses, 'Costo del financiamiento'],
+              ['Total Amortización del capital', resultado?.totalAmortizacion, 'Incluye el cuotón (CF)'],
+              ['Total Seguro de Desgravamen', resultado?.totalSegDes, 'Sobre el saldo deudor'],
+              ['Total Seguro contra todo riesgo', resultado?.totalSegRie, 'Seguro vehicular'],
+              ['Total GPS', resultado?.totalGPS, 'Costo periódico'],
+              ['Total Portes', resultado?.totalPortes, 'Costo periódico'],
+              ['Total Gastos Administrativos', resultado?.totalGasAdm, 'Costo periódico'],
+            ].map(([label, value, sub]) => (
+              <div className="desglose-item" key={label}>
+                <div className="desglose-label"><Info size={16}/> {label}</div>
+                <div className="desglose-value">
+                  <strong>{resultado ? `${currencySymbol} ${fmt(value)}` : '--'}</strong>
+                  <span>{sub}</span>
+                </div>
               </div>
-            </div>
-            <div className="desglose-item">
-              <div className="desglose-label"><Info size={16}/> Total Seguros</div>
-              <div className="desglose-value">
-                <strong>{resultado ? `${currencySymbol} ${resultado.totalSeguros.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
-                <span>Desgravamen + Vehículo</span>
-              </div>
-            </div>
-            <div className="desglose-item">
-              <div className="desglose-label"><Info size={16}/> Total Amortización</div>
-              <div className="desglose-value">
-                <strong>{resultado ? `${currencySymbol} ${resultado.totalAmortizacion.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
-                <span>Pago a capital (incluye cuotón)</span>
-              </div>
-            </div>
-            <div className="desglose-item">
-              <div className="desglose-label"><Info size={16}/> Total Costos Periódicos</div>
-              <div className="desglose-value">
-                <strong>{resultado ? `${currencySymbol} ${resultado.totalCostosFijos.toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}</strong>
-                <span>GPS + Portes + Gastos Adm.</span>
-              </div>
-            </div>
+            ))}
 
             <div className="total-box">
               <div>
                 <div className="total-label">Monto total a pagar</div>
                 <div className="total-value">
-                  {resultado ? `${currencySymbol} ${resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '--'}
+                  {resultado ? `${currencySymbol} ${fmt(resultado.cronograma.reduce((acc, c) => acc - c.flujo, 0))}` : '--'}
                 </div>
               </div>
               <div className="total-plazo">
                 DURANTE<br/>
-                <strong>{resultado ? resultado.cronograma.length : (plazo || '--')} meses</strong>
+                <strong>{resultado ? resultado.totalPeriodos : (plazo || '--')} meses</strong>
               </div>
             </div>
           </div>

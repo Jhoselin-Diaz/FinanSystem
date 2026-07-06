@@ -1,7 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Filter, Plus, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown, RefreshCw } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown, RefreshCw, Car } from 'lucide-react';
 import './Vehiculos.css';
+
+const FORM_VACIO = {
+  marca: '',
+  modelo: '',
+  anio: new Date().getFullYear().toString(),
+  tipo_vehiculo: '',
+  precio: '',
+  moneda: 'Soles (S/)',
+  imagen_url: '',
+  estado: 'Activo'
+};
+
+const simboloMoneda = (m) => (m === 'Dólares (US$)' ? 'US$' : 'S/');
+
+// Miniatura con fallback local: si la URL falla, muestra un ícono
+function VehiculoThumb({ url, alt }) {
+  const [failed, setFailed] = React.useState(false);
+  if (!url || failed) {
+    return <div className="veh-thumb veh-thumb-placeholder"><Car size={18} /></div>;
+  }
+  return <img className="veh-thumb" src={url} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
+}
 
 export default function Vehiculos() {
   const [vehiculos, setVehiculos] = useState([]);
@@ -16,14 +38,7 @@ export default function Vehiculos() {
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({
-    marca: '',
-    modelo: '',
-    anio: new Date().getFullYear().toString(),
-    tipo_vehiculo: '',
-    precio: '',
-    estado: 'Activo'
-  });
+  const [formData, setFormData] = useState({ ...FORM_VACIO });
 
   useEffect(() => {
     fetchVehiculos();
@@ -51,17 +66,10 @@ export default function Vehiculos() {
 
   const openModal = (vehiculo = null) => {
     if (vehiculo) {
-      setFormData(vehiculo);
+      setFormData({ ...FORM_VACIO, ...vehiculo, moneda: vehiculo.moneda || 'Soles (S/)', imagen_url: vehiculo.imagen_url || '' });
       setEditingId(vehiculo.id);
     } else {
-      setFormData({
-        marca: '',
-        modelo: '',
-        anio: new Date().getFullYear().toString(),
-        tipo_vehiculo: '',
-        precio: '',
-        estado: 'Activo'
-      });
+      setFormData({ ...FORM_VACIO });
       setEditingId(null);
     }
     setShowModal(true);
@@ -81,22 +89,27 @@ export default function Vehiculos() {
         anio: parseInt(formData.anio),
         tipo_vehiculo: formData.tipo_vehiculo,
         precio: parseFloat(formData.precio),
+        moneda: formData.moneda || 'Soles (S/)',
+        imagen_url: formData.imagen_url?.trim() || null,
         estado: formData.estado
       };
 
-      if (editingId) {
-        const { error } = await supabase
-          .from('vehiculos')
-          .update(payload)
-          .eq('id', editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('vehiculos')
-          .insert([payload]);
-        if (error) throw error;
+      const guardar = async (p) => editingId
+        ? supabase.from('vehiculos').update(p).eq('id', editingId)
+        : supabase.from('vehiculos').insert([p]);
+
+      let { error } = await guardar(payload);
+
+      // Compatibilidad: si la BD aún no tiene moneda/imagen_url, guarda lo básico
+      if (error && /column|schema/i.test(error.message)) {
+        const basico = { ...payload };
+        delete basico.moneda;
+        delete basico.imagen_url;
+        ({ error } = await guardar(basico));
+        if (!error) alert('Vehículo guardado sin moneda/imagen. Ejecuta supabase-migration.sql en Supabase para habilitar precios en dólares e imágenes.');
       }
-      
+      if (error) throw error;
+
       closeModal();
       fetchVehiculos();
     } catch (error) {
@@ -206,29 +219,31 @@ export default function Vehiculos() {
           <thead>
             <tr>
               <th>ID</th>
+              <th></th>
               <th>Marca</th>
               <th>Modelo</th>
               <th>Año</th>
               <th>Tipo de vehículo</th>
-              <th>Precio (S/)</th>
+              <th>Precio</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="8" style={{textAlign: 'center', padding: '2rem'}}>Cargando...</td></tr>
+              <tr><td colSpan="9" style={{textAlign: 'center', padding: '2rem'}}>Cargando...</td></tr>
             ) : filteredVehiculos.length === 0 ? (
-              <tr><td colSpan="8" style={{textAlign: 'center', padding: '2rem'}}>No hay vehículos registrados que coincidan con los filtros.</td></tr>
+              <tr><td colSpan="9" style={{textAlign: 'center', padding: '2rem'}}>No hay vehículos registrados que coincidan con los filtros.</td></tr>
             ) : (
               filteredVehiculos.map((vehiculo) => (
                 <tr key={vehiculo.id}>
                   <td style={{color: '#64748b'}}>{String(vehiculo.id).padStart(5, '0')}</td>
+                  <td><VehiculoThumb url={vehiculo.imagen_url} alt={`${vehiculo.marca} ${vehiculo.modelo}`} /></td>
                   <td className="font-medium">{vehiculo.marca}</td>
                   <td>{vehiculo.modelo}</td>
                   <td>{vehiculo.anio}</td>
                   <td>{vehiculo.tipo_vehiculo}</td>
-                  <td>{parseFloat(vehiculo.precio).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td>{simboloMoneda(vehiculo.moneda)} {parseFloat(vehiculo.precio).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                   <td>
                     <span className={`status-badge ${vehiculo.estado === 'Activo' ? 'status-active' : 'status-inactive'}`}>
                       {vehiculo.estado}
@@ -295,8 +310,22 @@ export default function Vehiculos() {
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>Precio (S/)*</label>
-                  <input required type="number" step="0.01" name="precio" value={formData.precio} onChange={handleInputChange} placeholder="Ej. 89900.00" />
+                  <label>Moneda del precio*</label>
+                  <select name="moneda" value={formData.moneda} onChange={handleInputChange}>
+                    <option value="Soles (S/)">Soles (S/)</option>
+                    <option value="Dólares (US$)">Dólares (US$)</option>
+                  </select>
+                </div>
+                <div className="form-group half-width">
+                  <label>Precio ({simboloMoneda(formData.moneda)})*</label>
+                  <input required type="number" step="0.01" min="0" name="precio" value={formData.precio} onChange={handleInputChange} placeholder="Ej. 89900.00" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group half-width">
+                  <label>Imagen (URL, opcional)</label>
+                  <input type="url" name="imagen_url" value={formData.imagen_url} onChange={handleInputChange} placeholder="https://..." />
                 </div>
                 <div className="form-group half-width">
                   <label>Estado</label>

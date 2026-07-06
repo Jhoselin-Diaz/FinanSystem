@@ -212,7 +212,7 @@ export default function Configuracion() {
           <div className="cfg-form-grid">
             <div className="cfg-form-group">
               <label>Moneda predeterminada</label>
-              <select className="cfg-select" {...set('moneda_predeterminada')}><option>Soles (S/)</option><option>Dólares ($)</option></select>
+              <select className="cfg-select" {...set('moneda_predeterminada')}><option>Soles (S/)</option><option>Dólares (US$)</option></select>
             </div>
             <div className="cfg-form-group">
               <label>Tipo de tasa predeterminada</label>

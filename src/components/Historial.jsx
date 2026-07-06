@@ -89,6 +89,9 @@ export default function Historial() {
   const fmtDate = (d) =>
     new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
 
+  // Símbolo según la moneda guardada en cada simulación
+  const sym = (s) => (s?.moneda === 'Dólares (US$)' || s?.moneda === 'Dólares ($)' ? 'US$' : 'S/');
+
   const simToDelete = simulaciones.find(s => s.id === confirmDeleteId);
 
   return (
@@ -151,7 +154,7 @@ export default function Historial() {
                   <td className="font-medium">{s.clientes?.nombre_completo || '—'}</td>
                   <td>{s.vehiculos ? `${s.vehiculos.marca} ${s.vehiculos.modelo}` : '—'}</td>
                   <td>{s.entidades_financieras?.nombre || '—'}</td>
-                  <td><span className="cuota-badge">S/ {fmt(s.cuota_mensual)}</span></td>
+                  <td><span className="cuota-badge">{sym(s)} {fmt(s.cuota_mensual)}</span></td>
                   <td>{fmt(s.tcea, 2)} %</td>
                   <td>{s.plazo} meses</td>
                   <td>
@@ -255,12 +258,18 @@ export default function Historial() {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span>Precio Vehículo</span>
-                    <strong>S/ {fmt(selectedSim.precio_vehiculo)}</strong>
+                    <strong>{sym(selectedSim)} {fmt(selectedSim.precio_vehiculo)}</strong>
                   </div>
                   <div className="detail-item">
                     <span>Cuota Inicial</span>
-                    <strong>S/ {fmt(selectedSim.cuota_inicial)}</strong>
+                    <strong>{sym(selectedSim)} {fmt(selectedSim.cuota_inicial)}</strong>
                   </div>
+                  {selectedSim.cuota_final != null && (
+                    <div className="detail-item">
+                      <span>Cuota Final (Cuotón)</span>
+                      <strong>{sym(selectedSim)} {fmt(selectedSim.cuota_final)} ({fmt(selectedSim.porcentaje_cuota_final, 0)}%)</strong>
+                    </div>
+                  )}
                   <div className="detail-item">
                     <span>Tipo de Tasa</span>
                     <strong>{selectedSim.tipo_tasa}</strong>
@@ -283,8 +292,14 @@ export default function Historial() {
                   </div>
                   <div className="detail-item">
                     <span>Gastos Iniciales</span>
-                    <strong>S/ {fmt(selectedSim.gastos_iniciales)}</strong>
+                    <strong>{sym(selectedSim)} {fmt(selectedSim.gastos_iniciales)}</strong>
                   </div>
+                  {selectedSim.cok != null && (
+                    <div className="detail-item">
+                      <span>COK (tasa de descuento)</span>
+                      <strong>{fmt(selectedSim.cok, 2)} % anual</strong>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -293,7 +308,7 @@ export default function Historial() {
                 <div className="results-highlight-grid">
                   <div className="results-highlight-box">
                     <span>Cuota Mensual</span>
-                    <strong>S/ {fmt(selectedSim.cuota_mensual)}</strong>
+                    <strong>{sym(selectedSim)} {fmt(selectedSim.cuota_mensual)}</strong>
                   </div>
                   <div className="results-highlight-box">
                     <span>TCEA</span>
@@ -301,11 +316,11 @@ export default function Historial() {
                   </div>
                   <div className="results-highlight-box">
                     <span>VAN</span>
-                    <strong>S/ {fmt(selectedSim.van)}</strong>
+                    <strong>{sym(selectedSim)} {fmt(selectedSim.van)}</strong>
                   </div>
                   <div className="results-highlight-box">
-                    <span>TIR</span>
-                    <strong>{fmt(selectedSim.tir, 2)} %</strong>
+                    <span>TIR mensual</span>
+                    <strong>{fmt(selectedSim.tir, 3)} %</strong>
                   </div>
                 </div>
               </div>
