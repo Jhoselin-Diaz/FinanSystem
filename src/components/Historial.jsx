@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Clock, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle } from 'lucide-react';
 import './Historial.css';

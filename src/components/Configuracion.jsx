@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { HelpCircle, RefreshCw, Save, Plus, Pencil, Trash2, Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
 import './Configuracion.css';

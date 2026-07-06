@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Mail, Lock, Eye, EyeOff, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import './Perfil.css';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, ChevronDown, User, LogOut, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './Navbar.css';

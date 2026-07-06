@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Calculator, Info, Save, Download } from 'lucide-react';
 import { calcularCronograma } from '../lib/financialMath';
@@ -17,15 +17,20 @@ export default function Simulador({ addNotification }) {
   const [entidadId, setEntidadId] = useState('');
 
   const [precioVehiculo, setPrecioVehiculo] = useState('');
-  const [pctCuotaInicial, setPctCuotaInicial] = useState('');       // pCI (% del precio)
-  const [porcentajeCuotaFinal, setPorcentajeCuotaFinal] = useState(''); // pCF (% del precio)
+  // Cuota inicial (pCI): dos campos sincronizados, monto y %; editar cualquiera actualiza el otro
+  const [pctCuotaInicial, setPctCuotaInicial] = useState('');
+  const [montoCuotaInicialStr, setMontoCuotaInicialStr] = useState('');
+  // Cuota final / cuotón (pCF): dos campos sincronizados, monto y %
+  const [porcentajeCuotaFinal, setPorcentajeCuotaFinal] = useState('');
+  const [montoCuotaFinalStr, setMontoCuotaFinalStr] = useState('');
 
   const [tipoTasa, setTipoTasa] = useState('Efectiva Anual (TEA)');
   const [tasaInteres, setTasaInteres] = useState('');
   const [moneda, setMoneda] = useState('Soles (S/)');
   const [monedaBloqueada, setMonedaBloqueada] = useState(false);    // fijada por el vehículo
   const [capitalizacion, setCapitalizacion] = useState('Mensual');
-  const [plazo, setPlazo] = useState('');
+  const [plazo, setPlazo] = useState('');           // N en meses (canónico, usado en el cálculo)
+  const [plazoAniosStr, setPlazoAniosStr] = useState(''); // N en años, sincronizado con plazo
   const [graciaTotal, setGraciaTotal] = useState('');
   const [graciaParcial, setGraciaParcial] = useState('');
 
@@ -71,7 +76,10 @@ export default function Simulador({ addNotification }) {
         setCapitalizacion(cfg.capitalizacion_predeterminada || 'Mensual');
         setSeguroDesgravamen(cfg.seguro_desgravamen ?? '');
         setSeguroRiesgo(cfg.seguro_vehiculo ?? '');
-        if (cfg.plazo_maximo) setPlazo(cfg.plazo_maximo);
+        if (cfg.plazo_maximo) {
+          setPlazo(cfg.plazo_maximo);
+          setPlazoAniosStr(String(Math.round(parseFloat(cfg.plazo_maximo) / 12)));
+        }
       }
     };
     fetchData();
@@ -85,7 +93,13 @@ export default function Simulador({ addNotification }) {
     setVehiculoId(id);
     const veh = vehiculos.find(v => v.id.toString() === id);
     if (veh) {
+      const precio = parseFloat(veh.precio) || 0;
       setPrecioVehiculo(veh.precio);
+      // Al cambiar de vehículo, recalcula los montos manteniendo los % ya ingresados
+      const pctCI = parseFloat(pctCuotaInicial) || 0;
+      const pctCF = parseFloat(porcentajeCuotaFinal) || 0;
+      setMontoCuotaInicialStr(precio > 0 && pctCI > 0 ? (precio * pctCI / 100).toFixed(2) : '');
+      setMontoCuotaFinalStr(precio > 0 && pctCF > 0 ? (precio * pctCF / 100).toFixed(2) : '');
       // La moneda de la operación es la del vehículo (sin conversión de tipo de cambio)
       if (veh.moneda) {
         setMoneda(veh.moneda);
@@ -98,6 +112,54 @@ export default function Simulador({ addNotification }) {
       setPrecioVehiculo('');
       setMonedaBloqueada(false);
     }
+  };
+
+  // Cuota inicial y cuota final (cuotón): campos de monto y % sincronizados entre sí
+  const handleMontoCIChange = (value) => {
+    setMontoCuotaInicialStr(value);
+    const pv0 = parseFloat(precioVehiculo) || 0;
+    const monto = parseFloat(value) || 0;
+    setPctCuotaInicial(pv0 > 0 && value !== '' ? (monto / pv0 * 100).toFixed(4) : '');
+  };
+
+  const handlePctCIChange = (value) => {
+    setPctCuotaInicial(value);
+    const pv0 = parseFloat(precioVehiculo) || 0;
+    const pct = parseFloat(value) || 0;
+    setMontoCuotaInicialStr(pv0 > 0 && value !== '' ? (pv0 * pct / 100).toFixed(2) : '');
+  };
+
+  const handleMontoCFChange = (value) => {
+    setMontoCuotaFinalStr(value);
+    const pv0 = parseFloat(precioVehiculo) || 0;
+    const monto = parseFloat(value) || 0;
+    setPorcentajeCuotaFinal(pv0 > 0 && value !== '' ? (monto / pv0 * 100).toFixed(4) : '');
+  };
+
+  const handlePctCFChange = (value) => {
+    setPorcentajeCuotaFinal(value);
+    const pv0 = parseFloat(precioVehiculo) || 0;
+    const pct = parseFloat(value) || 0;
+    setMontoCuotaFinalStr(pv0 > 0 && value !== '' ? (pv0 * pct / 100).toFixed(2) : '');
+  };
+
+  // Plazo: meses y años sincronizados entre sí (meses es el valor canónico usado en el cálculo).
+  // Los años siempre son un número entero.
+  const setPlazoMeses = (value) => {
+    setPlazo(value);
+    const meses = parseFloat(value) || 0;
+    setPlazoAniosStr(value !== '' ? String(Math.round(meses / 12)) : '');
+  };
+
+  const handlePlazoAniosChange = (value) => {
+    if (value === '') {
+      setPlazoAniosStr('');
+      setPlazo('');
+      return;
+    }
+    const anios = Math.max(0, Math.round(parseFloat(value) || 0));
+    setPlazoAniosStr(String(anios));
+    setPlazo(String(anios * 12));
   };
 
   const aplicarTasaEntidad = (id, monedaSel) => {
@@ -114,10 +176,10 @@ export default function Simulador({ addNotification }) {
     const ent = entidades.find(ent => ent.id === id);
     if (ent) {
       aplicarTasaEntidad(id);
-      setPlazo(ent.plazo_maximo);
+      setPlazoMeses(ent.plazo_maximo);
     } else {
       setTasaInteres('');
-      setPlazo('');
+      setPlazoMeses('');
     }
   };
 
@@ -134,20 +196,21 @@ export default function Simulador({ addNotification }) {
            (parseFloat(comisionActivacion) || 0);
   };
 
-  const montoCuotaInicial = (parseFloat(precioVehiculo) || 0) * ((parseFloat(pctCuotaInicial) || 0) / 100);
-  const montoCuotaFinal = (parseFloat(precioVehiculo) || 0) * ((parseFloat(porcentajeCuotaFinal) || 0) / 100);
+  const montoCuotaInicial = parseFloat(montoCuotaInicialStr) || 0;
+  const pctCuotaInicialEfectivo = parseFloat(pctCuotaInicial) || 0;
+  const pctCuotaFinalEfectivo = parseFloat(porcentajeCuotaFinal) || 0;
 
   const validar = () => {
     const errs = [];
-    const pv = parseFloat(precioVehiculo);
-    const pCI = parseFloat(pctCuotaInicial) || 0;
-    const pCF = parseFloat(porcentajeCuotaFinal) || 0;
+    const pvVal = parseFloat(precioVehiculo);
+    const pCI = pctCuotaInicialEfectivo;
+    const pCF = pctCuotaFinalEfectivo;
     const n = parseInt(plazo);
     const gT = parseInt(graciaTotal) || 0;
     const gP = parseInt(graciaParcial) || 0;
     const tasa = parseFloat(tasaInteres);
 
-    if (!pv || pv <= 0) errs.push('Selecciona un vehículo con precio válido.');
+    if (!pvVal || pvVal <= 0) errs.push('Selecciona un vehículo con precio válido.');
     if (!tasa || tasa <= 0 || tasa > 200) errs.push('La tasa de interés debe ser mayor a 0.');
     if (!n || n <= 0 || !Number.isInteger(n)) errs.push('El plazo debe ser un número entero de meses mayor a 0.');
     if (pCI < 0 || pCF < 0) errs.push('Los porcentajes de cuota inicial y final no pueden ser negativos.');
@@ -171,7 +234,7 @@ export default function Simulador({ addNotification }) {
     const result = calcularCronograma({
       precioVehiculo: parseFloat(precioVehiculo),
       cuotaInicial: montoCuotaInicial,
-      porcentajeCuotaFinal: parseFloat(porcentajeCuotaFinal) || 0,
+      porcentajeCuotaFinal: pctCuotaFinalEfectivo,
       tasaInteres: parseFloat(tasaInteres),
       tipoTasa,
       capitalizacion,
@@ -221,8 +284,8 @@ export default function Simulador({ addNotification }) {
 
     const extendido = {
       ...basePayload,
-      porcentaje_cuota_inicial: parseFloat(pctCuotaInicial) || 0,
-      porcentaje_cuota_final: parseFloat(porcentajeCuotaFinal) || 0,
+      porcentaje_cuota_inicial: pctCuotaInicialEfectivo,
+      porcentaje_cuota_final: pctCuotaFinalEfectivo,
       cuota_final: resultado.cuotaFinal,
       gracia_total: parseInt(graciaTotal) || 0,
       gracia_parcial: parseInt(graciaParcial) || 0,
@@ -326,8 +389,8 @@ export default function Simulador({ addNotification }) {
     sectionTitle('2. Datos del Crédito');
     row3col([
       ['Precio de venta (PV):', `${sym} ${fmt(parseFloat(precioVehiculo))}`],
-      ['% Cuota inicial (pCI):', `${pctCuotaInicial || 0} % = ${sym} ${fmt(montoCuotaInicial)}`],
-      ['% Cuota final (pCF):', `${porcentajeCuotaFinal || 0} % = ${sym} ${fmt(resultado.cuotaFinal)}`],
+      ['% Cuota inicial (pCI):', `${fmt(pctCuotaInicialEfectivo, 2)} % = ${sym} ${fmt(montoCuotaInicial)}`],
+      ['% Cuota final (pCF):', `${fmt(pctCuotaFinalEfectivo, 2)} % = ${sym} ${fmt(resultado.cuotaFinal)}`],
     ]);
     row3col([
       ['Tipo de tasa:', tipoTasa],
@@ -498,17 +561,31 @@ export default function Simulador({ addNotification }) {
               </div>
 
               <div className="form-group">
-                <label>% Cuota inicial — pCI</label>
-                <div className="input-with-addon">
-                  <input type="number" step="0.01" min="0" max="99" value={pctCuotaInicial} onChange={(e) => setPctCuotaInicial(e.target.value)} />
-                  <span className="addon">{currencySymbol} {fmt(montoCuotaInicial)}</span>
+                <label>Cuota inicial — pCI</label>
+                <div className="dual-sync-input">
+                  <div className="dual-sync-field">
+                    <span className="dual-sync-label">{currencySymbol}</span>
+                    <input type="number" step="0.01" min="0" value={montoCuotaInicialStr} onChange={(e) => handleMontoCIChange(e.target.value)} placeholder="0.00" />
+                  </div>
+                  <span className="dual-sync-divider">=</span>
+                  <div className="dual-sync-field">
+                    <input type="number" step="0.01" min="0" max="99" value={pctCuotaInicial} onChange={(e) => handlePctCIChange(e.target.value)} placeholder="0" />
+                    <span className="dual-sync-label">%</span>
+                  </div>
                 </div>
               </div>
               <div className="form-group">
-                <label>% Cuota final (cuotón) — pCF</label>
-                <div className="input-with-addon">
-                  <input type="number" step="0.01" min="0" max="99" value={porcentajeCuotaFinal} onChange={(e) => setPorcentajeCuotaFinal(e.target.value)} />
-                  <span className="addon">{currencySymbol} {fmt(montoCuotaFinal)}</span>
+                <label>Cuota final (cuotón) — pCF</label>
+                <div className="dual-sync-input">
+                  <div className="dual-sync-field">
+                    <span className="dual-sync-label">{currencySymbol}</span>
+                    <input type="number" step="0.01" min="0" value={montoCuotaFinalStr} onChange={(e) => handleMontoCFChange(e.target.value)} placeholder="0.00" />
+                  </div>
+                  <span className="dual-sync-divider">=</span>
+                  <div className="dual-sync-field">
+                    <input type="number" step="0.01" min="0" max="99" value={porcentajeCuotaFinal} onChange={(e) => handlePctCFChange(e.target.value)} placeholder="0" />
+                    <span className="dual-sync-label">%</span>
+                  </div>
                 </div>
                 <span className="help-text">Se paga un mes después de la última cuota (mes N+1)</span>
               </div>
@@ -541,10 +618,17 @@ export default function Simulador({ addNotification }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Plazo — N (meses)</label>
-                <div className="input-with-addon">
-                  <input type="number" required min="1" value={plazo} onChange={(e) => setPlazo(e.target.value)} />
-                  <span className="addon">{plazo ? `${(parseInt(plazo) / 12).toFixed(1)} años` : '—'}</span>
+                <label>Plazo — N</label>
+                <div className="dual-sync-input">
+                  <div className="dual-sync-field">
+                    <input type="number" required min="1" step="1" value={plazo} onChange={(e) => setPlazoMeses(e.target.value)} placeholder="0" />
+                    <span className="dual-sync-label">meses</span>
+                  </div>
+                  <span className="dual-sync-divider">=</span>
+                  <div className="dual-sync-field">
+                    <input type="number" min="0" step="1" value={plazoAniosStr} onChange={(e) => handlePlazoAniosChange(e.target.value)} onKeyDown={(e) => { if (e.key === '.' || e.key === ',') e.preventDefault(); }} placeholder="0" />
+                    <span className="dual-sync-label">años</span>
+                  </div>
                 </div>
                 <span className="help-text">Frecuencia de pago: 30 días · Año de 360 días · 12 cuotas/año</span>
               </div>
