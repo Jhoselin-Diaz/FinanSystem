@@ -183,8 +183,9 @@ export const calcularCronograma = ({
   }
 
   // 4. Indicadores
-  const tirMensual = calculateIRR(flujos, 0.01);
-  const tcea = (Math.pow(1 + tirMensual, 12) - 1) * 100;
+  const tirPeriodica = calculateIRR(flujos, 0.01); // null si no converge
+  const tirValida = tirPeriodica !== null;
+  const tcea = tirValida ? (Math.pow(1 + tirPeriodica, 12) - 1) * 100 : null;
 
   const cokPct = Number.isFinite(Number(cokAnual)) && Number(cokAnual) > 0 ? Number(cokAnual) : 50;
   const cokMensual = Math.pow(1 + cokPct / 100, 30 / 360) - 1;
@@ -213,8 +214,8 @@ export const calcularCronograma = ({
     segRiePer,                             // seguro de riesgo del periodo (monto)
     cuotaMensual: cuotaPromedioMes,        // cuota + seguro riesgo + costos fijos
     cuotaRegular,                          // cuota francesa (incluye desgravamen)
-    tirMensual: tirMensual * 100,
-    tcea,
+    tirMensual: tirValida ? tirPeriodica * 100 : null, // null si Newton-Raphson no convergió
+    tcea,                                  // null si tirMensual es null
     van,
     cokAnual: cokPct,
     cokMensual: cokMensual * 100,          // COKi (tasa de descuento del periodo)
@@ -240,6 +241,7 @@ function calculateNPV(rate, cashFlows) {
   return npv;
 }
 
+// Devuelve la TIR periódica, o null si Newton-Raphson no converge a una tasa válida
 function calculateIRR(cashFlows, guess = 0.01) {
   const maxTries = 1000;
   const epsilon = 1e-10;
@@ -256,13 +258,17 @@ function calculateIRR(cashFlows, guess = 0.01) {
       }
     }
 
-    if (Math.abs(npvDerivative) < epsilon) break;
+    if (Math.abs(npvDerivative) < epsilon) return null;
 
     const newRate = rate - npv / npvDerivative;
+
+    // Tasa por debajo de -100% (o no finita) no tiene sentido económico; evita seguir iterando sobre NaN/Infinity
+    if (!Number.isFinite(newRate) || newRate <= -0.999999) return null;
+
     if (Math.abs(newRate - rate) < epsilon) {
       return newRate;
     }
     rate = newRate;
   }
-  return rate;
+  return null; // no convergió en maxTries iteraciones
 }

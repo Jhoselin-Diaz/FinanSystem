@@ -253,12 +253,19 @@ export default function Simulador({ addNotification }) {
       cokAnual: parseFloat(cok) || 50
     });
 
+    if (result.tirMensual === null) {
+      setErrores(['No se pudo calcular la TIR con estos datos (el método de Newton-Raphson no convergió). Revisa la tasa, el plazo y los periodos de gracia ingresados.']);
+    }
     setResultado(result);
   };
 
   const handleSave = async () => {
     if (!resultado || !clienteId || !vehiculoId || !entidadId) {
       alert("Debes seleccionar cliente, vehículo, entidad y calcular la simulación antes de guardar.");
+      return;
+    }
+    if (resultado.tirMensual === null || resultado.tcea === null) {
+      alert("No se puede guardar: la TIR/TCEA no se pudo calcular con estos datos. Ajusta la tasa, el plazo o los periodos de gracia y vuelve a calcular.");
       return;
     }
 
@@ -326,6 +333,8 @@ export default function Simulador({ addNotification }) {
   };
 
   const fmt = (n, dec = 2) => (n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  // Para TIR/TCEA: pueden venir en null si Newton-Raphson no convergió (ver financialMath.js)
+  const fmtTir = (n, dec = 2) => (n === null ? 'No calculable' : `${fmt(n, dec)} %`);
 
   const handleExport = () => {
     if (!resultado) {
@@ -624,11 +633,11 @@ export default function Simulador({ addNotification }) {
               </div>
               <div className="resultado-box">
                 <h4>TIR mensual</h4>
-                <div className="val">{resultado ? `${fmt(resultado.tirMensual, 4)} %` : '--'}</div>
+                <div className="val">{resultado ? fmtTir(resultado.tirMensual, 4) : '--'}</div>
               </div>
               <div className="resultado-box">
                 <h4>TCEA</h4>
-                <div className="val">{resultado ? `${fmt(resultado.tcea, 4)} %` : '--'}</div>
+                <div className="val">{resultado ? fmtTir(resultado.tcea, 4) : '--'}</div>
               </div>
               <div className="resultado-box">
                 <h4>{resultado ? `VAN (COK ${resultado.cokAnual}%)` : 'VAN'}</h4>
@@ -636,7 +645,7 @@ export default function Simulador({ addNotification }) {
               </div>
               <div className="resultado-box">
                 <h4>TIR / COKi periodo</h4>
-                <div className="val" style={{fontSize: '0.95rem'}}>{resultado ? `${fmt(resultado.tirMensual, 3)}% / ${fmt(resultado.cokMensual, 3)}%` : '--'}</div>
+                <div className="val" style={{fontSize: '0.95rem'}}>{resultado ? `${resultado.tirMensual === null ? 'N/D' : fmt(resultado.tirMensual, 3) + '%'} / ${fmt(resultado.cokMensual, 3)}%` : '--'}</div>
               </div>
             </div>
 

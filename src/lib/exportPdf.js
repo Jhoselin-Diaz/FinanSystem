@@ -2,6 +2,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const fmt = (n, dec = 2) => (n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+// Para TIR/TCEA: pueden venir en null si Newton-Raphson no convergió (ver financialMath.js)
+const fmtTir = (n, dec = 2) => (n === null ? 'No calculable' : `${fmt(n, dec)} %`);
 
 /**
  * Genera el PDF del cronograma de pagos (Compra Inteligente).
@@ -106,8 +108,8 @@ export function exportCronogramaPDF(datos) {
     { label: 'Cuotón Final (CF)', value: `${sym} ${fmt(resultado.cuotaFinal)}` },
     { label: 'TEA', value: `${fmt(resultado.tea, 4)} %` },
     { label: 'TEM', value: `${fmt(resultado.tem, 4)} %` },
-    { label: 'TIR Mensual', value: `${fmt(resultado.tirMensual, 4)} %` },
-    { label: 'TCEA', value: `${fmt(resultado.tcea, 4)} %` },
+    { label: 'TIR Mensual', value: fmtTir(resultado.tirMensual, 4) },
+    { label: 'TCEA', value: fmtTir(resultado.tcea, 4) },
     { label: `VAN (COK ${resultado.cokAnual}%)`, value: `${sym} ${fmt(resultado.van)}` },
   ];
   const cardW = (pageW - margin * 2) / cards.length;
