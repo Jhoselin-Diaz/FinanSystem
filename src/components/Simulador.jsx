@@ -311,9 +311,9 @@ export default function Simulador({ addNotification }) {
 
       // Compatibilidad: si la BD aún no tiene las columnas nuevas, guarda lo básico
       if (error && /column|schema/i.test(error.message)) {
-        console.warn('Columnas extendidas no disponibles, guardando payload base. Ejecuta supabase-migration.sql. Detalle:', error.message);
+        console.warn('Columnas extendidas no disponibles, guardando payload base. Actualiza la BD con supabase-schema.sql. Detalle:', error.message);
         ({ error } = await supabase.from('simulaciones').insert([basePayload]));
-        if (!error) alert('Simulación guardada en modo compatible. Ejecuta supabase-migration.sql en Supabase para guardar también cuotón, gracia T/P, COK y costos periódicos.');
+        if (!error) alert('Simulación guardada en modo compatible. Actualiza la base de datos con supabase-schema.sql para guardar también cuotón, gracia T/P, COK y costos periódicos.');
       }
 
       if (error) throw error;

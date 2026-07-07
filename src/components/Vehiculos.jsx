@@ -106,7 +106,7 @@ export default function Vehiculos() {
         delete basico.moneda;
         delete basico.imagen_url;
         ({ error } = await guardar(basico));
-        if (!error) alert('Vehículo guardado sin moneda/imagen. Ejecuta supabase-migration.sql en Supabase para habilitar precios en dólares e imágenes.');
+        if (!error) alert('Vehículo guardado sin moneda/imagen. Actualiza la base de datos con supabase-schema.sql para habilitar precios en dólares e imágenes.');
       }
       if (error) throw error;
 
