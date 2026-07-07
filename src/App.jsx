@@ -54,7 +54,8 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f4f8' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--app-bg)', color: 'var(--ink-500)' }}>
+        <span className="fs-spinner" style={{ width: 28, height: 28, borderColor: 'var(--brand-100)', borderTopColor: 'var(--brand-600)' }} aria-hidden="true"></span>
         Cargando...
       </div>
     );
@@ -65,7 +66,7 @@ function App() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--app-bg)' }}>
       <Sidebar onLogout={handleLogout} currentView={currentView} setCurrentView={setCurrentView} />
 
       <main style={{

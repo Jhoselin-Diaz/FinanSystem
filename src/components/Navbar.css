@@ -36,14 +36,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: var(--ink-500);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .icon-btn:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
+  background-color: var(--brand-050);
+  color: var(--brand-700);
 }
 
 .notification-btn .badge {
@@ -78,14 +78,14 @@
 }
 
 .profile-btn:hover {
-  background-color: #f1f5f9;
+  background-color: var(--brand-050);
 }
 
 .avatar-sm {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1d68b6, #2563eb);
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
   color: white;
   font-size: 0.8rem;
   font-weight: 700;
@@ -120,12 +120,12 @@
   position: absolute;
   right: 0;
   top: calc(100% + 0.5rem);
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
   z-index: 200;
-  animation: dropFadeIn 0.15s ease;
+  animation: dropFadeIn 0.18s ease;
 }
 
 @keyframes dropFadeIn {

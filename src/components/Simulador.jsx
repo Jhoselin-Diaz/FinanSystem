@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calculator, Info, Save, Download } from 'lucide-react';
+import { Calculator, Info, Save, Download, BarChart3, FileSearch } from 'lucide-react';
 import { calcularCronograma } from '../lib/financialMath';
 import { exportCronogramaPDF } from '../lib/exportPdf';
+import CuotaChart from './CuotaChart';
 import './Simulador.css';
 
 export default function Simulador({ addNotification }) {
@@ -568,7 +569,7 @@ export default function Simulador({ addNotification }) {
                 <input type="number" step="0.01" min="0" value={comisionActivacion} onChange={(e) => setComisionActivacion(e.target.value)} />
               </div>
             </div>
-            <div style={{marginTop: '1rem', color: '#1d68b6', fontWeight: '600', fontSize: '0.9rem'}}>
+            <div style={{marginTop: '1rem', color: 'var(--brand-700)', fontWeight: '600', fontSize: '0.9rem'}}>
               Total Gastos Iniciales: {currencySymbol} {fmt(getTotalGastos())} (se suman al monto del préstamo)
             </div>
           </div>
@@ -612,39 +613,43 @@ export default function Simulador({ addNotification }) {
 
         <div className="right-panel">
           <div className="section-card" style={{flex: 1}}>
-            <h3 style={{fontSize: '1.1rem', marginBottom: '1.5rem', color: '#1e293b'}}>Resultados del financiamiento</h3>
+            <h3 style={{fontSize: '1.1rem', marginBottom: '1.5rem'}}>Resultados del financiamiento</h3>
+
+            <div className="resultado-hero">
+              <div>
+                <div className="hero-label">Cuota mensual total</div>
+                <div className="hero-value">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaMensual)}` : '--'}</div>
+                <div className="hero-sub">Incluye cuota francesa, seguro de riesgo y costos fijos</div>
+              </div>
+              <div className="hero-side">
+                <div className="hero-label">Cuotón final (CF)</div>
+                <div className="hero-side-value">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaFinal)}` : '--'}</div>
+              </div>
+            </div>
 
             <div className="resultados-grid">
               <div className="resultado-box">
-                <h4>Cuota mensual total</h4>
-                <div className="val">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaMensual)}` : '--'}</div>
-              </div>
-              <div className="resultado-box">
-                <h4>Cuotón final (CF)</h4>
-                <div className="val">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaFinal)}` : '--'}</div>
-              </div>
-              <div className="resultado-box">
-                <h4>TEA</h4>
+                <h4 className="fs-tip" data-tip="Tasa Efectiva Anual: la tasa de interés real del crédito en un año.">TEA</h4>
                 <div className="val">{resultado ? `${fmt(resultado.tea, 4)} %` : '--'}</div>
               </div>
               <div className="resultado-box">
-                <h4>TEM</h4>
+                <h4 className="fs-tip" data-tip="Tasa Efectiva Mensual: la TEA convertida al periodo de 30 días.">TEM</h4>
                 <div className="val">{resultado ? `${fmt(resultado.tem, 4)} %` : '--'}</div>
               </div>
               <div className="resultado-box">
-                <h4>TIR mensual</h4>
+                <h4 className="fs-tip" data-tip="Tasa Interna de Retorno mensual del flujo del deudor, calculada con el método de Newton-Raphson.">TIR mensual</h4>
                 <div className="val">{resultado ? fmtTir(resultado.tirMensual, 4) : '--'}</div>
               </div>
               <div className="resultado-box">
-                <h4>TCEA</h4>
+                <h4 className="fs-tip" data-tip="Tasa de Costo Efectivo Anual: el costo total real del crédito por año, incluyendo seguros y gastos.">TCEA</h4>
                 <div className="val">{resultado ? fmtTir(resultado.tcea, 4) : '--'}</div>
               </div>
               <div className="resultado-box">
-                <h4>{resultado ? `VAN (COK ${resultado.cokAnual}%)` : 'VAN'}</h4>
+                <h4 className="fs-tip" data-tip="Valor Actual Neto de los flujos, descontados al COK. Positivo = conviene frente al costo de oportunidad.">{resultado ? `VAN (COK ${resultado.cokAnual}%)` : 'VAN'}</h4>
                 <div className="val">{resultado ? `${currencySymbol} ${fmt(resultado.van)}` : '--'}</div>
               </div>
               <div className="resultado-box">
-                <h4>TIR / COKi periodo</h4>
+                <h4 className="fs-tip" data-tip="Comparación entre la TIR del crédito y el costo de oportunidad del capital (COK) en el mismo periodo.">TIR / COKi periodo</h4>
                 <div className="val" style={{fontSize: '0.95rem'}}>{resultado ? `${resultado.tirMensual === null ? 'N/D' : fmt(resultado.tirMensual, 3) + '%'} / ${fmt(resultado.cokMensual, 3)}%` : '--'}</div>
               </div>
             </div>
@@ -664,7 +669,16 @@ export default function Simulador({ addNotification }) {
               </div>
             )}
 
-            <h3 style={{fontSize: '1.1rem', margin: '2rem 0 1rem', color: '#1e293b'}}>Cronograma de pagos</h3>
+            {resultado && (
+              <>
+                <h3 style={{fontSize: '1.1rem', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                  <BarChart3 size={18} style={{color: 'var(--brand-600)'}} /> Composición del pago mensual
+                </h3>
+                <CuotaChart cronograma={resultado.cronograma} sym={currencySymbol} />
+              </>
+            )}
+
+            <h3 style={{fontSize: '1.1rem', margin: '2rem 0 1rem'}}>Cronograma de pagos</h3>
             <div className="cronograma-wrapper">
               <table className="cronograma-table">
                 <thead>
@@ -696,12 +710,20 @@ export default function Simulador({ addNotification }) {
                 </thead>
                 <tbody>
                   {!resultado ? (
-                    <tr><td colSpan="18" style={{padding: '2rem'}}>Realiza una simulación para ver el cronograma</td></tr>
+                    <tr>
+                      <td colSpan="18" style={{padding: 0}}>
+                        <div className="fs-empty">
+                          <FileSearch />
+                          <strong>Aún no hay cronograma</strong>
+                          <p>Completa los datos del crédito y presiona «Calcular simulación» para generar el plan de pagos mes a mes.</p>
+                        </div>
+                      </td>
+                    </tr>
                   ) : (
                     <>
                       <tr className="fila-cero">
                         <td>0</td>
-                        <td colSpan="16" style={{textAlign: 'left', color: '#64748b'}}>Desembolso del préstamo</td>
+                        <td colSpan="16" style={{textAlign: 'left', color: 'var(--ink-500)'}}>Desembolso del préstamo</td>
                         <td className="flujo-positivo">{fmt(resultado.prestamo)}</td>
                       </tr>
                       {resultado.cronograma.map(c => (
@@ -732,7 +754,7 @@ export default function Simulador({ addNotification }) {
               </table>
             </div>
 
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2rem', marginBottom: '1rem', color: '#1d68b6', fontWeight: 'bold'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2rem', marginBottom: '1rem', color: 'var(--brand-700)', fontWeight: 'bold'}}>
               <span className="circle-number" style={{width: '20px', height: '20px', fontSize: '0.75rem'}}>6</span>
               Totales por concepto (transparencia de información)
             </div>
