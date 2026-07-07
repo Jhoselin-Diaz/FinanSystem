@@ -25,15 +25,15 @@ export default function Sidebar({ onLogout, currentView, setCurrentView }) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header" style={{flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem', height: 'auto'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
-          <div style={{position: 'relative', width: '28px', height: '28px', color: 'white'}}>
+      <div className="sidebar-header">
+        <div className="sidebar-brand">
+          <div className="sidebar-logo">
             <BarChart2 size={28} style={{position: 'absolute'}} />
             <TrendingUp size={28} style={{position: 'absolute', top: '2px', right: '2px'}} />
           </div>
-          <h2 style={{color: 'white', margin: 0, fontSize: '1.5rem'}}>FinanSystem</h2>
+          <h2>FinanSystem</h2>
         </div>
-        <p style={{color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.5rem', marginLeft: '2.5rem'}}>Simulador de Créditos<br/>Vehiculares</p>
+        <p className="sidebar-tagline">Simulador de Créditos<br/>Vehiculares</p>
       </div>
 
       <div className="sidebar-content">
@@ -53,7 +53,7 @@ export default function Sidebar({ onLogout, currentView, setCurrentView }) {
       </div>
 
       <div className="sidebar-footer">
-        <button className="logout-btn nav-item" onClick={onLogout} style={{width: '100%', color: '#94a3b8'}}>
+        <button className="logout-btn nav-item" onClick={onLogout} style={{width: '100%'}}>
           <LogOut size={20} />
           <span>Cerrar sesión</span>
         </button>

@@ -1,7 +1,7 @@
 .auth-wrapper {
   min-height: 100vh;
   width: 100vw;
-  background: linear-gradient(135deg, #1d68b6 0%, #103b70 100%);
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--navy-900) 78%, var(--navy-950) 100%);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -129,6 +129,16 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.auth-error {
+  background: var(--err-050);
+  border: 1px solid var(--err-100);
+  color: var(--err-600);
+  border-radius: var(--r-sm);
+  padding: 0.7rem 1rem;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 .form-group {
@@ -278,17 +288,22 @@
 
 /* Buttons */
 .submit-btn {
-  background-color: #1d68b6;
+  background: linear-gradient(180deg, var(--brand-500), var(--brand-600));
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 1rem;
+  font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   margin-top: 0.75rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(29, 104, 182, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-brand);
 }
 
 .submit-btn:hover:not(:disabled) {

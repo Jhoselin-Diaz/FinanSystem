@@ -11,6 +11,15 @@ import {
 import { supabase } from '../lib/supabase';
 import './Login.css';
 
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.37 10H12V14.26H17.92C17.66 15.63 16.88 16.78 15.69 17.57V20.34H19.26C21.35 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
+    <path d="M12 23C14.97 23 17.46 22.02 19.26 20.34L15.69 17.57C14.71 18.23 13.47 18.63 12 18.63C9.15 18.63 6.74 16.71 5.88 14.12H2.19V16.98C4.01 20.6 7.72 23 12 23Z" fill="#34A853"/>
+    <path d="M5.88 14.12C5.66 13.47 5.53 12.75 5.53 12C5.53 11.25 5.66 10.53 5.88 9.88V7.02H2.19C1.43 8.53 1 10.21 1 12C1 13.79 1.43 15.47 2.19 16.98L5.88 14.12Z" fill="#FBBC05"/>
+    <path d="M12 5.38C13.62 5.38 15.06 5.94 16.2 7.02L19.34 3.88C17.45 2.13 14.97 1 12 1C7.72 1 4.01 3.4 2.19 7.02L5.88 9.88C6.74 7.29 9.15 5.38 12 5.38Z" fill="#EA4335"/>
+  </svg>
+);
+
 export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -96,15 +105,6 @@ export default function Login({ onLogin }) {
     }
   };
 
-  const GoogleIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.37 10H12V14.26H17.92C17.66 15.63 16.88 16.78 15.69 17.57V20.34H19.26C21.35 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
-      <path d="M12 23C14.97 23 17.46 22.02 19.26 20.34L15.69 17.57C14.71 18.23 13.47 18.63 12 18.63C9.15 18.63 6.74 16.71 5.88 14.12H2.19V16.98C4.01 20.6 7.72 23 12 23Z" fill="#34A853"/>
-      <path d="M5.88 14.12C5.66 13.47 5.53 12.75 5.53 12C5.53 11.25 5.66 10.53 5.88 9.88V7.02H2.19C1.43 8.53 1 10.21 1 12C1 13.79 1.43 15.47 2.19 16.98L5.88 14.12Z" fill="#FBBC05"/>
-      <path d="M12 5.38C13.62 5.38 15.06 5.94 16.2 7.02L19.34 3.88C17.45 2.13 14.97 1 12 1C7.72 1 4.01 3.4 2.19 7.02L5.88 9.88C6.74 7.29 9.15 5.38 12 5.38Z" fill="#EA4335"/>
-    </svg>
-  );
-
   return (
     <div className="auth-wrapper">
       {/* Background Shapes */}
@@ -134,7 +134,7 @@ export default function Login({ onLogin }) {
 
           <form onSubmit={handleSubmit} className="auth-form">
             
-            {errorMsg && <div style={{color: 'red', fontSize: '0.85rem', textAlign: 'center'}}>{errorMsg}</div>}
+            {errorMsg && <div className="auth-error">{errorMsg}</div>}
             
             {mode === 'register' && (
               <div className="form-group">
@@ -239,6 +239,7 @@ export default function Login({ onLogin }) {
             )}
 
             <button type="submit" className="submit-btn" disabled={loading}>
+              {loading && <span className="fs-spinner" aria-hidden="true"></span>}
               {loading ? 'Cargando...' : (mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta')}
             </button>
 

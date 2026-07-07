@@ -11,6 +11,7 @@ export default function Inicio({ setCurrentView }) {
     vehiculos: 0,
     entidades: 0
   });
+  const [cargando, setCargando] = useState(true);
   useEffect(() => {
     const fetchData = async () => {
       // 1. Get User Name
@@ -33,6 +34,7 @@ export default function Inicio({ setCurrentView }) {
         vehiculos: resVehs.count || 0,
         entidades: resEntsCount.count || 0
       });
+      setCargando(false);
     };
 
     fetchData();
@@ -52,7 +54,7 @@ export default function Inicio({ setCurrentView }) {
           <div className="stat-icon"><FileText size={24} /></div>
           <div className="stat-info">
             <span className="label">Simulaciones guardadas</span>
-            <span className="value">{stats.simulaciones}</span>
+            <span className="value">{cargando ? <span className="fs-skeleton" /> : stats.simulaciones}</span>
             <span className="meta">Total registradas</span>
           </div>
         </div>
@@ -60,7 +62,7 @@ export default function Inicio({ setCurrentView }) {
           <div className="stat-icon"><Users size={24} /></div>
           <div className="stat-info">
             <span className="label">Clientes registrados</span>
-            <span className="value">{stats.clientes}</span>
+            <span className="value">{cargando ? <span className="fs-skeleton" /> : stats.clientes}</span>
             <span className="meta">Total clientes</span>
           </div>
         </div>
@@ -68,7 +70,7 @@ export default function Inicio({ setCurrentView }) {
           <div className="stat-icon"><Car size={24} /></div>
           <div className="stat-info">
             <span className="label">Vehículos registrados</span>
-            <span className="value">{stats.vehiculos}</span>
+            <span className="value">{cargando ? <span className="fs-skeleton" /> : stats.vehiculos}</span>
             <span className="meta">Total vehículos</span>
           </div>
         </div>
@@ -76,7 +78,7 @@ export default function Inicio({ setCurrentView }) {
           <div className="stat-icon"><Landmark size={24} /></div>
           <div className="stat-info">
             <span className="label">Entidades financieras</span>
-            <span className="value">{stats.entidades}</span>
+            <span className="value">{cargando ? <span className="fs-skeleton" /> : stats.entidades}</span>
             <span className="meta">Total entidades</span>
           </div>
         </div>

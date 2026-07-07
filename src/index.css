@@ -1,33 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
+/* ============================================================
+   FinanSystem — Design tokens
+   Tema claro fintech. Azul de marca #1D68B6 (el mismo del PDF
+   exportado, para que app e informe compartan identidad).
+   Tipografía: Manrope para cifras/títulos (numerales tabulares),
+   Inter para cuerpo y formularios.
+   ============================================================ */
 :root {
-  /* Color Palette - Dark SaaS Fintech Theme */
-  --bg-main: #0f172a;
-  --bg-panel: #1e293b;
-  --bg-panel-hover: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --accent: #10b981; /* Success / Growth */
-  --danger: #ef4444; /* Loss / Alert */
-  
-  --border: #334155;
-  
+  /* Marca (azules) */
+  --brand-800: #123F6E;
+  --brand-700: #17548F;
+  --brand-600: #1d68b6;          /* primario: botones, enlaces, acentos */
+  --brand-500: #2f7cc9;
+  --brand-100: #d7e7f7;
+  --brand-050: #eaf3fb;
+
+  /* Navy (sidebar, superficies de énfasis) */
+  --navy-900: #0b223f;
+  --navy-950: #071729;
+
+  /* Neutros slate (nunca blanco/negro puros) */
+  --ink-900: #16233b;            /* títulos */
+  --ink-700: #33445f;            /* cuerpo */
+  --ink-500: #64748b;            /* secundario, labels */
+  --ink-400: #94a3b8;            /* terciario, placeholders */
+  --line: #dfe7f2;               /* bordes */
+  --line-strong: #c6d3e4;
+  --surface: #ffffff;            /* tarjetas */
+  --surface-2: #f8fafc;          /* fondos internos */
+  --app-bg: #f2f6fb;             /* lienzo general, lavado azul */
+
+  /* Semánticos (no todo puede ser azul) */
+  --ok-600: #0e8a62;
+  --ok-100: #d9f2e7;
+  --ok-050: #ecf9f3;
+  --warn-700: #b45309;
+  --warn-100: #fdeed7;
+  --warn-050: #fef7ea;
+  --err-600: #c81e3c;
+  --err-100: #fbdde3;
+  --err-050: #fdeef1;
+
+  /* Tipografía */
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Manrope', 'Inter', sans-serif;
+
+  /* Radios y sombras (suaves, teñidas de azul) */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --shadow-xs: 0 1px 2px rgba(11, 34, 63, 0.06);
+  --shadow-sm: 0 1px 2px rgba(11, 34, 63, 0.06), 0 4px 12px -4px rgba(11, 34, 63, 0.08);
+  --shadow-md: 0 2px 4px rgba(11, 34, 63, 0.05), 0 12px 28px -12px rgba(11, 34, 63, 0.18);
+  --shadow-brand: 0 8px 20px -8px rgba(29, 104, 182, 0.45);
+
+  /* Movimiento */
+  --transition-fast: 0.16s ease;
+  --transition-normal: 0.24s ease;
+
   /* Layout */
   --sidebar-width: 260px;
   --navbar-height: 70px;
-  --border-radius: 12px;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.3s ease;
+
+  /* Compatibilidad con nombres antiguos */
+  --primary: var(--brand-600);
+  --primary-hover: var(--brand-700);
+  --accent: var(--ok-600);
+  --danger: var(--err-600);
+  --border: var(--line);
+  --bg-main: var(--app-bg);
+  --bg-panel: var(--surface);
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-500);
+  --border-radius: var(--r-md);
+}
+
+/* En pantallas pequeñas el sidebar colapsa a solo íconos */
+@media (max-width: 900px) {
+  :root {
+    --sidebar-width: 68px;
+  }
 }
 
 * {
@@ -36,12 +89,25 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-primary);
+  font-family: var(--font-body);
+  background-color: var(--app-bg);
+  color: var(--ink-700);
+  font-size: 15px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--ink-900);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -54,28 +120,194 @@ button {
   background: none;
   font-family: inherit;
   cursor: pointer;
-  outline: none;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 ul {
   list-style: none;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+input, select, textarea {
+  font-family: inherit;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--bg-main);
+/* Cifras financieras: numerales tabulares para que las columnas alineen */
+.num, .cronograma-table td, .resultado-box .val, .total-value,
+.stat-value, .desglose-value strong {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
+/* Foco visible consistente en toda la app */
+:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
   border-radius: 4px;
 }
 
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none; /* los inputs usan borde + ring propios */
+}
+
+/* ============================================================
+   Primitivas compartidas (prefijo fs- para evitar colisiones)
+   ============================================================ */
+
+/* Spinner para botones en estado loading */
+.fs-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: fs-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes fs-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Skeletons de carga */
+.fs-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: var(--r-sm);
+  min-height: 0.9rem;
+}
+
+.fs-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: fs-shimmer 1.4s infinite;
+}
+
+@keyframes fs-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Estado vacío */
+.fs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--ink-500);
+}
+
+.fs-empty svg {
+  color: var(--brand-100);
+  width: 40px;
+  height: 40px;
+}
+
+.fs-empty strong {
+  color: var(--ink-900);
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.fs-empty p {
+  font-size: 0.85rem;
+  max-width: 340px;
+}
+
+/* Tooltip por atributo data-tip (campos técnicos: TCEA, COK, etc.) */
+.fs-tip {
+  position: relative;
+  cursor: help;
+}
+
+.fs-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--navy-900);
+  color: #eaf3fb;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--r-sm);
+  width: max-content;
+  max-width: 240px;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 50;
+  box-shadow: var(--shadow-md);
+}
+
+.fs-tip:hover::after, .fs-tip:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Badge de estado (Activo / Inactivo y semánticos) */
+.fs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.fs-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.fs-badge.ok { background: var(--ok-050); color: var(--ok-600); }
+.fs-badge.err { background: var(--err-050); color: var(--err-600); }
+.fs-badge.warn { background: var(--warn-050); color: var(--warn-700); }
+.fs-badge.muted { background: var(--surface-2); color: var(--ink-500); }
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 6px;
+  border: 2px solid var(--app-bg);
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--ink-400);
+}
+
+/* Respeto a usuarios con movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
