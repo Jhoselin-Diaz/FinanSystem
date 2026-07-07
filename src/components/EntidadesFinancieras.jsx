@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Filter, Plus, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import FieldTip from './FieldTip';
 import './EntidadesFinancieras.css';
 
 export default function EntidadesFinancieras() {
@@ -23,17 +24,13 @@ export default function EntidadesFinancieras() {
     estado: 'Activo'
   });
 
-  useEffect(() => {
-    fetchEntidades();
-  }, []);
-
   const fetchEntidades = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('entidades_financieras')
       .select('*')
       .order('created_at', { ascending: false });
-      
+
     if (error) {
       console.error("Error fetching data: ", error);
     } else {
@@ -41,6 +38,10 @@ export default function EntidadesFinancieras() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchEntidades();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -229,44 +230,44 @@ export default function EntidadesFinancieras() {
               
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>TEA Soles mínima (%)*</label>
+                  <label>TEA Soles mínima (%)* <FieldTip tip="Tasa que el Simulador sugiere automáticamente al elegir este banco con moneda en soles." /></label>
                   <input required type="number" step="0.01" name="tea_soles_min" value={formData.tea_soles_min} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
-                  <label>TEA Soles máxima (%)*</label>
+                  <label>TEA Soles máxima (%)* <FieldTip tip="Tope del rango de tasas en soles que ofrece este banco (dato referencial)." /></label>
                   <input required type="number" step="0.01" name="tea_soles_max" value={formData.tea_soles_max} onChange={handleInputChange} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>TEA Dólares mínima (%)*</label>
+                  <label>TEA Dólares mínima (%)* <FieldTip tip="Tasa que el Simulador sugiere automáticamente al elegir este banco con moneda en dólares." /></label>
                   <input required type="number" step="0.01" name="tea_dolares_min" value={formData.tea_dolares_min} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
-                  <label>TEA Dólares máxima (%)*</label>
+                  <label>TEA Dólares máxima (%)* <FieldTip tip="Tope del rango de tasas en dólares que ofrece este banco (dato referencial)." /></label>
                   <input required type="number" step="0.01" name="tea_dolares_max" value={formData.tea_dolares_max} onChange={handleInputChange} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>Periodo de Gracia mínima (meses)*</label>
+                  <label>Periodo de Gracia mínima (meses)* <FieldTip tip="Meses de gracia mínimos que ofrece este banco (dato referencial)." /></label>
                   <input required type="number" name="periodo_gracia_min" value={formData.periodo_gracia_min} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
-                  <label>Periodo de Gracia máxima (meses)*</label>
+                  <label>Periodo de Gracia máxima (meses)* <FieldTip tip="Meses de gracia máximos que ofrece este banco (dato referencial)." /></label>
                   <input required type="number" name="periodo_gracia_max" value={formData.periodo_gracia_max} onChange={handleInputChange} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>Plazo máximo (meses)*</label>
+                  <label>Plazo máximo (meses)* <FieldTip tip="Al elegir este banco, el Simulador precarga este plazo como N." /></label>
                   <input required type="number" name="plazo_maximo" value={formData.plazo_maximo} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
-                  <label>Estado</label>
+                  <label>Estado <FieldTip tip="Indica si la entidad está operativa en el sistema." /></label>
                   <select name="estado" value={formData.estado} onChange={handleInputChange}>
                     <option value="Activo">Activo</option>
                     <option value="Inactivo">Inactivo</option>

@@ -31,7 +31,7 @@ export const getCapitalizacionFrecuencia = (cap) => {
 
 /**
  * Plan de pagos - Compra Inteligente (método francés vencido ordinario,
- * meses de 30 días / año de 360 días). Replica el Excel modelo del curso.
+ * meses de 30 días / año de 360 días).
  *
  * El préstamo se separa en dos saldos:
  *  - Saldo regular ("Saldo a financiar con cuotas"): se amortiza con cuota

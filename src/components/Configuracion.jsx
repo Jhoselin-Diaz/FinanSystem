@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { HelpCircle, RefreshCw, Save, Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
+import { RefreshCw, Save, Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
+import FieldTip from './FieldTip';
 import './Configuracion.css';
 
 const DEFAULT_CONFIG = {
@@ -24,8 +25,6 @@ export default function Configuracion() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => { loadConfig(); }, []);
-
   const showToast = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 3500); };
 
   const loadConfig = async () => {
@@ -37,6 +36,8 @@ export default function Configuracion() {
       }
     } catch (e) { console.warn('Config table not ready yet:', e.message); }
   };
+
+  useEffect(() => { loadConfig(); }, []);
 
   const set = (key) => ({
     value: cfg[key] ?? '',
@@ -83,7 +84,7 @@ export default function Configuracion() {
       <div className="config-main-stack">
         {/* 1. Parámetros financieros */}
         <div className="config-panel">
-          <div className="config-panel-title">1. Parámetros financieros <HelpCircle size={15} className="help-icon" /></div>
+          <div className="config-panel-title">1. Parámetros financieros <FieldTip tip="Límites y valores por defecto que el Simulador carga al iniciar una nueva simulación." /></div>
           <div className="cfg-form-grid">
             <div className="cfg-form-group">
               <label>Plazo máximo (meses)</label>
@@ -110,14 +111,14 @@ export default function Configuracion() {
 
         {/* 2. Configuración general */}
         <div className="config-panel">
-          <div className="config-panel-title">2. Configuración general <HelpCircle size={15} className="help-icon" /></div>
+          <div className="config-panel-title">2. Configuración general <FieldTip tip="Preferencias generales que se precargan en cada nueva simulación; puedes cambiarlas al simular." /></div>
           <div className="cfg-form-grid">
             <div className="cfg-form-group">
-              <label>Moneda predeterminada</label>
+              <label>Moneda predeterminada <FieldTip tip="Moneda con la que se abre el Simulador. Si el vehículo elegido tiene moneda propia, esa manda." /></label>
               <select className="cfg-select" {...set('moneda_predeterminada')}><option>Soles (S/)</option><option>Dólares (US$)</option></select>
             </div>
             <div className="cfg-form-group">
-              <label>Tipo de tasa predeterminada</label>
+              <label>Tipo de tasa predeterminada <FieldTip tip="Tipo de tasa precargado en el Simulador: TEA (efectiva anual) o TNA (nominal anual con capitalización)." /></label>
               <select className="cfg-select" {...set('tipo_tasa_predeterminada')}><option>Efectiva Anual (TEA)</option><option>Nominal Anual (TNA)</option></select>
             </div>
             <div className="cfg-form-group">

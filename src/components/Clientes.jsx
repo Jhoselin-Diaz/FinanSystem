@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Filter, Plus, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import FieldTip from './FieldTip';
 import './Clientes.css';
 
 export default function Clientes() {
@@ -21,17 +22,13 @@ export default function Clientes() {
     estado: 'Activo'
   });
 
-  useEffect(() => {
-    fetchClientes();
-  }, []);
-
   const fetchClientes = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('clientes')
       .select('*')
       .order('created_at', { ascending: false });
-      
+
     if (error) {
       console.error("Error fetching data: ", error);
     } else {
@@ -39,6 +36,10 @@ export default function Clientes() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchClientes();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -226,7 +227,7 @@ export default function Clientes() {
               
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>DNI*</label>
+                  <label>DNI* <FieldTip tip="Documento de identidad (8 dígitos). Identifica al cliente en el Simulador y en el Historial." /></label>
                   <input required type="text" maxLength="8" name="dni" value={formData.dni} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
@@ -244,17 +245,17 @@ export default function Clientes() {
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>Ingreso Familiar mensual (S/)*</label>
+                  <label>Ingreso Familiar mensual (S/)* <FieldTip tip="Ingreso del hogar. Sirve de referencia para evaluar si la cuota mensual es pagable." /></label>
                   <input required type="number" step="0.01" name="ingreso_mensual" value={formData.ingreso_mensual} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
-                  <label>Número de dependencias*</label>
+                  <label>Número de dependencias* <FieldTip tip="Personas que dependen económicamente del cliente (hijos, padres a cargo, etc.)." /></label>
                   <input required type="number" min="0" name="dependencias" value={formData.dependencias} onChange={handleInputChange} />
                 </div>
               </div>
 
               <div className="form-group full-width">
-                <label>Estado</label>
+                <label>Estado <FieldTip tip="Indica si el cliente está vigente en el sistema." /></label>
                 <select name="estado" value={formData.estado} onChange={handleInputChange}>
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>

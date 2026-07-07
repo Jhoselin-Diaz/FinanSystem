@@ -259,6 +259,31 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Icono de ayuda junto a labels y datos (ver FieldTip.jsx) */
+.fs-help {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -2px;
+  margin-left: 0.3rem;
+  color: var(--ink-400);
+  transition: color var(--transition-fast);
+}
+
+.fs-help:hover,
+.fs-help:focus-visible {
+  color: var(--brand-600);
+}
+
+/* Sobre fondos oscuros (hero de resultados) el icono debe seguir visible */
+.fs-help.on-dark {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fs-help.on-dark:hover,
+.fs-help.on-dark:focus-visible {
+  color: #ffffff;
+}
+
 /* Badge de estado (Activo / Inactivo y semánticos) */
 .fs-badge {
   display: inline-flex;

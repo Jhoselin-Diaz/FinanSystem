@@ -50,10 +50,6 @@ export default function Historial() {
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchHistorial();
-  }, []);
-
   const fetchHistorial = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -74,6 +70,10 @@ export default function Historial() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    fetchHistorial();
+  }, []);
+
   // Step 1: Show in-app confirm dialog
   const requestDelete = (id) => {
     setDeleteError('');
@@ -88,7 +88,7 @@ export default function Historial() {
     setDeleteError('');
 
     try {
-      const { error, status, statusText } = await supabase
+      const { error, status } = await supabase
         .from('simulaciones')
         .delete()
         .eq('id', id);
@@ -207,9 +207,9 @@ export default function Historial() {
               <th>Cliente</th>
               <th>Vehículo</th>
               <th>Banco</th>
-              <th>Cuota mensual total</th>
-              <th>TCEA</th>
-              <th>Plazo</th>
+              <th title="Pago de cada mes: cuota francesa (con seguro de desgravamen) + seguro vehicular + costos fijos">Cuota mensual total</th>
+              <th title="Tasa de Costo Efectivo Anual: el costo total real del crédito por año, incluyendo seguros y gastos">TCEA</th>
+              <th title="Duración del crédito en meses (N)">Plazo</th>
               <th>Acciones</th>
             </tr>
           </thead>
