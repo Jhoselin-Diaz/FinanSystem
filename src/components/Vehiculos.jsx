@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Plus, Edit2, Trash2, ChevronLeft, ChevronRight, ChevronDown, RefreshCw, Car } from 'lucide-react';
+import FieldTip from './FieldTip';
 import './Vehiculos.css';
 
 const FORM_VACIO = {
@@ -40,17 +41,13 @@ export default function Vehiculos() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ...FORM_VACIO });
 
-  useEffect(() => {
-    fetchVehiculos();
-  }, []);
-
   const fetchVehiculos = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('vehiculos')
       .select('*')
       .order('id', { ascending: false });
-      
+
     if (error) {
       console.error("Error fetching data: ", error);
     } else {
@@ -58,6 +55,10 @@ export default function Vehiculos() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchVehiculos();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -297,21 +298,21 @@ export default function Vehiculos() {
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>Moneda del precio*</label>
+                  <label>Moneda del precio* <FieldTip tip="Moneda en la que está el precio. Al simular con este vehículo, toda la operación usará esta moneda." /></label>
                   <select name="moneda" value={formData.moneda} onChange={handleInputChange}>
                     <option value="Soles (S/)">Soles (S/)</option>
                     <option value="Dólares (US$)">Dólares (US$)</option>
                   </select>
                 </div>
                 <div className="form-group half-width">
-                  <label>Precio ({simboloMoneda(formData.moneda)})*</label>
+                  <label>Precio ({simboloMoneda(formData.moneda)})* <FieldTip tip="Precio de venta del vehículo. El Simulador lo toma como PV, la base del cálculo del crédito." /></label>
                   <input required type="number" step="0.01" min="0" name="precio" value={formData.precio} onChange={handleInputChange} placeholder="Ej. 89900.00" />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group half-width">
-                  <label>Imagen (URL, opcional)</label>
+                  <label>Imagen (URL, opcional) <FieldTip tip="Dirección web de una foto del vehículo. Si no hay o falla, se muestra un ícono en su lugar." /></label>
                   <input type="url" name="imagen_url" value={formData.imagen_url} onChange={handleInputChange} placeholder="https://..." />
                   <div className="imagen-preview">
                     {formData.imagen_url?.trim() ? (
@@ -325,7 +326,7 @@ export default function Vehiculos() {
                   </div>
                 </div>
                 <div className="form-group half-width">
-                  <label>Estado</label>
+                  <label>Estado <FieldTip tip="Solo los vehículos Activos aparecen disponibles en el Simulador." /></label>
                   <select name="estado" value={formData.estado} onChange={handleInputChange}>
                     <option value="Activo">Activo</option>
                     <option value="Inactivo">Inactivo</option>

@@ -17,5 +17,10 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Patrón intencional de la app: cargar datos de Supabase al montar
+      // (fetch + setLoading dentro de useEffect). No es un error.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

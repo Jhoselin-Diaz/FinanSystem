@@ -4,6 +4,7 @@ import { Calculator, Info, Save, Download, BarChart3, FileSearch } from 'lucide-
 import { calcularCronograma } from '../lib/financialMath';
 import { exportCronogramaPDF } from '../lib/exportPdf';
 import CuotaChart from './CuotaChart';
+import FieldTip from './FieldTip';
 import './Simulador.css';
 
 export default function Simulador({ addNotification }) {
@@ -389,7 +390,7 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">1</span> Selección de datos principales</div>
             <div className="form-grid-3">
               <div className="form-group">
-                <label>Cliente</label>
+                <label>Cliente <FieldTip tip="Persona que solicita el crédito. Se registra y administra en la pestaña Clientes." /></label>
                 <select required value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
                   <option value="">Selecciona un cliente</option>
                   {clientes.map(c => (
@@ -398,7 +399,7 @@ export default function Simulador({ addNotification }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Vehículo</label>
+                <label>Vehículo <FieldTip tip="Vehículo a financiar. Al seleccionarlo se cargan automáticamente su precio y su moneda." /></label>
                 <select required value={vehiculoId} onChange={handleVehiculoChange}>
                   <option value="">Selecciona un vehículo</option>
                   {vehiculos.map(v => (
@@ -407,7 +408,7 @@ export default function Simulador({ addNotification }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Entidad Financiera</label>
+                <label>Entidad Financiera <FieldTip tip="Banco o financiera que otorga el crédito. Al seleccionarla se sugieren su TEA mínima y su plazo máximo." /></label>
                 <select required value={entidadId} onChange={handleEntidadChange}>
                   <option value="">Selecciona un banco</option>
                   {entidades.map(e => (
@@ -422,11 +423,11 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">2</span> Datos del crédito</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>Precio de venta del activo — PV ({currencySymbol})</label>
+                <label>Precio de venta del activo — PV ({currencySymbol}) <FieldTip tip="Precio del vehículo (PV), base de todo el cálculo. Se llena solo al elegir el vehículo; no se edita aquí." /></label>
                 <input type="number" readOnly value={precioVehiculo} />
               </div>
               <div className="form-group">
-                <label>Moneda</label>
+                <label>Moneda <FieldTip tip="Moneda de la operación (soles o dólares). Si el vehículo tiene moneda propia, queda fijada por él." /></label>
                 <select value={moneda} onChange={handleMonedaChange} disabled={monedaBloqueada}>
                   <option value="Soles (S/)">Soles (S/)</option>
                   <option value="Dólares (US$)">Dólares (US$)</option>
@@ -435,7 +436,7 @@ export default function Simulador({ addNotification }) {
               </div>
 
               <div className="form-group">
-                <label>Cuota inicial — pCI</label>
+                <label>Cuota inicial — pCI <FieldTip tip="Parte del precio que se paga al contado al inicio. Escribe el monto o el %: el otro campo se calcula solo." /></label>
                 <div className="dual-sync-input">
                   <div className="dual-sync-field">
                     <span className="dual-sync-label">{currencySymbol}</span>
@@ -449,7 +450,7 @@ export default function Simulador({ addNotification }) {
                 </div>
               </div>
               <div className="form-group">
-                <label>Cuota final (cuotón) — pCF</label>
+                <label>Cuota final (cuotón) — pCF <FieldTip tip="Cuota extraordinaria que se paga al final del crédito (mes N+1). Al reservar parte del precio para el final, las cuotas mensuales bajan." /></label>
                 <div className="dual-sync-input">
                   <div className="dual-sync-field">
                     <span className="dual-sync-label">{currencySymbol}</span>
@@ -465,14 +466,14 @@ export default function Simulador({ addNotification }) {
               </div>
 
               <div className="form-group">
-                <label>Tipo de tasa de interés</label>
+                <label>Tipo de tasa de interés <FieldTip tip="TEA: tasa efectiva anual, ya incluye la capitalización. TNA: tasa nominal anual, requiere indicar el periodo de capitalización." /></label>
                 <select value={tipoTasa} onChange={(e) => setTipoTasa(e.target.value)}>
                   <option value="Efectiva Anual (TEA)">Efectiva Anual (TEA)</option>
                   <option value="Nominal Anual (TNA)">Nominal Anual (TNA)</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Tasa de interés (%)</label>
+                <label>Tasa de interés (%) <FieldTip tip="Tasa anual del crédito. Se sugiere la tasa mínima del banco elegido, pero puedes modificarla." /></label>
                 <div className="input-with-addon">
                   <input type="number" step="0.0001" required value={tasaInteres} onChange={(e) => setTasaInteres(e.target.value)} />
                   <span className="addon">%</span>
@@ -480,7 +481,7 @@ export default function Simulador({ addNotification }) {
               </div>
 
               <div className="form-group">
-                <label>Periodo de capitalización (solo TNA)</label>
+                <label>Periodo de capitalización (solo TNA) <FieldTip tip="Frecuencia con la que capitaliza la tasa nominal (TNA) para convertirla en efectiva. Solo se usa cuando el tipo de tasa es TNA." /></label>
                 <select value={capitalizacion} onChange={(e) => setCapitalizacion(e.target.value)} disabled={tipoTasa !== 'Nominal Anual (TNA)'}>
                   <option value="Diario">Diario</option>
                   <option value="Mensual">Mensual</option>
@@ -492,7 +493,7 @@ export default function Simulador({ addNotification }) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Plazo — N</label>
+                <label>Plazo — N <FieldTip tip="Duración del crédito. Escribe meses o años: el otro campo se sincroniza. El cálculo usa el número de meses (N)." /></label>
                 <div className="dual-sync-input">
                   <div className="dual-sync-field">
                     <input type="number" required min="1" step="1" value={plazo} onChange={(e) => setPlazoMeses(e.target.value)} placeholder="0" />
@@ -508,12 +509,12 @@ export default function Simulador({ addNotification }) {
               </div>
 
               <div className="form-group">
-                <label>Gracia Total — T (meses)</label>
+                <label>Gracia Total — T (meses) <FieldTip tip="Meses iniciales en los que no se paga nada: el interés no pagado se suma al saldo (se capitaliza)." /></label>
                 <input type="number" min="0" value={graciaTotal} onChange={(e) => setGraciaTotal(e.target.value)} />
                 <span className="help-text">Sin cuota; el interés se capitaliza</span>
               </div>
               <div className="form-group">
-                <label>Gracia Parcial — P (meses)</label>
+                <label>Gracia Parcial — P (meses) <FieldTip tip="Meses en los que solo se pagan intereses y seguros: el saldo del préstamo no baja, pero tampoco crece." /></label>
                 <input type="number" min="0" value={graciaParcial} onChange={(e) => setGraciaParcial(e.target.value)} />
                 <span className="help-text">
                   Paga solo interés y seguros; el saldo no cambia
@@ -527,7 +528,7 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">3</span> Seguros</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>% Seguro de desgravamen — pSegDes</label>
+                <label>% Seguro de desgravamen — pSegDes <FieldTip tip="Seguro que cancela la deuda si el titular fallece. Se cobra como % sobre el saldo deudor de cada mes." /></label>
                 <div style={{display: 'flex', gap: '0.5rem'}}>
                   <input type="number" step="0.001" min="0" style={{flex: 1}} value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
                   <select style={{width: '110px'}} value={periodoSegDes} onChange={(e) => setPeriodoSegDes(e.target.value)}>
@@ -538,7 +539,7 @@ export default function Simulador({ addNotification }) {
                 <span className="help-text">Sobre el saldo deudor. Ej: 0.049% mensual (= 0.588% anual)</span>
               </div>
               <div className="form-group">
-                <label>% Seguro de riesgo — pSegRie (% anual)</label>
+                <label>% Seguro de riesgo — pSegRie (% anual) <FieldTip tip="Seguro vehicular contra todo riesgo (choque, robo). Es un % anual sobre el precio del vehículo, cobrado en partes cada mes." /></label>
                 <input type="number" step="0.001" min="0" value={seguroRiesgo} onChange={(e) => setSeguroRiesgo(e.target.value)} />
                 <span className="help-text">Seguro vehicular contra todo riesgo, sobre el precio del vehículo</span>
               </div>
@@ -549,23 +550,23 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">4</span> Costes/Gastos iniciales (se financian en el préstamo)</div>
             <div className="form-grid-3">
               <div className="form-group">
-                <label>Costes Notariales ({currencySymbol})</label>
+                <label>Costes Notariales ({currencySymbol}) <FieldTip tip="Gastos de notaría por la firma del contrato. Se financian: se suman al monto del préstamo." /></label>
                 <input type="number" step="0.01" min="0" value={costesNotariales} onChange={(e) => setCostesNotariales(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Costes Registrales ({currencySymbol})</label>
+                <label>Costes Registrales ({currencySymbol}) <FieldTip tip="Costo de inscribir la garantía vehicular en Registros Públicos. Se financia en el préstamo." /></label>
                 <input type="number" step="0.01" min="0" value={costesRegistrales} onChange={(e) => setCostesRegistrales(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Tasación ({currencySymbol})</label>
+                <label>Tasación ({currencySymbol}) <FieldTip tip="Costo de valorizar el vehículo que servirá de garantía. Se financia en el préstamo." /></label>
                 <input type="number" step="0.01" min="0" value={tasacion} onChange={(e) => setTasacion(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Comisión de estudio ({currencySymbol})</label>
+                <label>Comisión de estudio ({currencySymbol}) <FieldTip tip="Comisión del banco por evaluar y aprobar el crédito. Se financia en el préstamo." /></label>
                 <input type="number" step="0.01" min="0" value={comisionEstudio} onChange={(e) => setComisionEstudio(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Comisión de activación ({currencySymbol})</label>
+                <label>Comisión de activación ({currencySymbol}) <FieldTip tip="Comisión del banco por desembolsar (activar) el crédito. Se financia en el préstamo." /></label>
                 <input type="number" step="0.01" min="0" value={comisionActivacion} onChange={(e) => setComisionActivacion(e.target.value)} />
               </div>
             </div>
@@ -578,19 +579,19 @@ export default function Simulador({ addNotification }) {
             <div className="section-title"><span className="circle-number">5</span> Costes/Gastos periódicos y COK</div>
             <div className="form-grid">
               <div className="form-group">
-                <label>GPS ({currencySymbol} mensual)</label>
+                <label>GPS ({currencySymbol} mensual) <FieldTip tip="Costo mensual del dispositivo de rastreo que exige el banco. No cambia la cuota francesa, pero sí el flujo, la TIR y la TCEA." /></label>
                 <input type="number" step="0.01" min="0" value={gpsMensual} onChange={(e) => setGpsMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Portes ({currencySymbol} mensual)</label>
+                <label>Portes ({currencySymbol} mensual) <FieldTip tip="Cobro mensual por el envío de estados de cuenta. Afecta el flujo, la TIR y la TCEA." /></label>
                 <input type="number" step="0.01" min="0" value={portesMensual} onChange={(e) => setPortesMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Gastos de Administración ({currencySymbol} mensual)</label>
+                <label>Gastos de Administración ({currencySymbol} mensual) <FieldTip tip="Cobro administrativo mensual de la entidad. Afecta el flujo, la TIR y la TCEA." /></label>
                 <input type="number" step="0.01" min="0" value={gastosAdmMensual} onChange={(e) => setGastosAdmMensual(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Tasa de descuento — COK (% anual)</label>
+                <label>Tasa de descuento — COK (% anual) <FieldTip tip="Costo de oportunidad del capital: la rentabilidad mínima que le exiges a tu dinero. Con él se descuentan los flujos para calcular el VAN." /></label>
                 <div className="input-with-addon">
                   <input type="number" step="0.01" min="0" value={cok} onChange={(e) => setCok(e.target.value)} />
                   <span className="addon">%</span>
@@ -617,12 +618,12 @@ export default function Simulador({ addNotification }) {
 
             <div className="resultado-hero">
               <div>
-                <div className="hero-label">Cuota mensual total</div>
+                <div className="hero-label">Cuota mensual total <FieldTip className="on-dark" tip="Lo que se paga cada mes: cuota francesa (con seguro de desgravamen) + seguro vehicular + GPS, portes y gastos administrativos." /></div>
                 <div className="hero-value">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaMensual)}` : '--'}</div>
                 <div className="hero-sub">Incluye cuota francesa, seguro de riesgo y costos fijos</div>
               </div>
               <div className="hero-side">
-                <div className="hero-label">Cuotón final (CF)</div>
+                <div className="hero-label">Cuotón final (CF) <FieldTip className="on-dark" tip="Pago único al final del crédito (mes N+1). Gracias a él, las cuotas mensuales son más bajas." /></div>
                 <div className="hero-side-value">{resultado ? `${currencySymbol} ${fmt(resultado.cuotaFinal)}` : '--'}</div>
               </div>
             </div>
@@ -656,16 +657,16 @@ export default function Simulador({ addNotification }) {
 
             {resultado && (
               <div className="detalle-financiamiento">
-                <div><span>Cuota inicial (CI)</span><strong>{currencySymbol} {fmt(resultado.cuotaInicial)}</strong></div>
-                <div><span>Monto del préstamo</span><strong>{currencySymbol} {fmt(resultado.prestamo)}</strong></div>
-                <div><span>Saldo a financiar con cuotas</span><strong>{currencySymbol} {fmt(resultado.saldoRegularInicial)}</strong></div>
-                <div><span>VP del cuotón</span><strong>{currencySymbol} {fmt(resultado.saldoCuotonInicial)}</strong></div>
-                <div><span>Nº cuotas por año (NCxA)</span><strong>{resultado.ncxa}</strong></div>
-                <div><span>Nº total de cuotas (N)</span><strong>{resultado.totalCuotas}{resultado.totalPeriodos > resultado.totalCuotas ? ` + cuotón en mes ${resultado.totalPeriodos}` : ''}</strong></div>
-                <div><span>% Seg. desgravamen periódico</span><strong>{fmt(resultado.pSegDesPer, 4)} %</strong></div>
-                <div><span>Seguro riesgo periódico</span><strong>{currencySymbol} {fmt(resultado.segRiePer)}</strong></div>
-                <div><span>Cuota francesa (inc. SegDes)</span><strong>{currencySymbol} {fmt(resultado.cuotaRegular)}</strong></div>
-                <div><span>Tasa de descuento periódica (COKi)</span><strong>{fmt(resultado.cokMensual, 5)} %</strong></div>
+                <div><span>Cuota inicial (CI) <FieldTip tip="Pago al contado del inicio: precio del vehículo × % de cuota inicial." /></span><strong>{currencySymbol} {fmt(resultado.cuotaInicial)}</strong></div>
+                <div><span>Monto del préstamo <FieldTip tip="Lo que realmente se financia: precio del vehículo − cuota inicial + gastos iniciales financiados." /></span><strong>{currencySymbol} {fmt(resultado.prestamo)}</strong></div>
+                <div><span>Saldo a financiar con cuotas <FieldTip tip="Parte del préstamo que se paga con las cuotas mensuales: préstamo − valor presente del cuotón." /></span><strong>{currencySymbol} {fmt(resultado.saldoRegularInicial)}</strong></div>
+                <div><span>VP del cuotón <FieldTip tip="El cuotón (CF) traído a valor presente: CF ÷ (1+i)^(N+1). Esta parte del préstamo se cubre con el pago final, no con las cuotas." /></span><strong>{currencySymbol} {fmt(resultado.saldoCuotonInicial)}</strong></div>
+                <div><span>Nº cuotas por año (NCxA) <FieldTip tip="Cuotas por año: 12, porque el modelo usa meses de 30 días y año de 360 días." /></span><strong>{resultado.ncxa}</strong></div>
+                <div><span>Nº total de cuotas (N) <FieldTip tip="Cantidad de cuotas mensuales del cronograma. El cuotón se paga aparte, un mes después de la última cuota." /></span><strong>{resultado.totalCuotas}{resultado.totalPeriodos > resultado.totalCuotas ? ` + cuotón en mes ${resultado.totalPeriodos}` : ''}</strong></div>
+                <div><span>% Seg. desgravamen periódico <FieldTip tip="El % de desgravamen convertido al mes. Se suma a la TEM para calcular la cuota, por eso la cuota ya incluye este seguro." /></span><strong>{fmt(resultado.pSegDesPer, 4)} %</strong></div>
+                <div><span>Seguro riesgo periódico <FieldTip tip="El seguro vehicular anual repartido en 12 pagos: monto fijo que se suma a cada cuota mensual." /></span><strong>{currencySymbol} {fmt(resultado.segRiePer)}</strong></div>
+                <div><span>Cuota francesa (inc. SegDes) <FieldTip tip="Cuota constante del método francés sobre el saldo a financiar, con tasa TEM + %SegDes. Es la columna «Cuota» del cronograma." /></span><strong>{currencySymbol} {fmt(resultado.cuotaRegular)}</strong></div>
+                <div><span>Tasa de descuento periódica (COKi) <FieldTip tip="El COK anual convertido al mes. Con esta tasa se descuentan los flujos para obtener el VAN." /></span><strong>{fmt(resultado.cokMensual, 5)} %</strong></div>
               </div>
             )}
 
