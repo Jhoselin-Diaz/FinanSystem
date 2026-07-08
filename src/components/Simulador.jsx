@@ -62,7 +62,7 @@ export default function Simulador({ addNotification }) {
       const [resClientes, resVehiculos, resEntidades, resCfg] = await Promise.all([
         supabase.from('clientes').select('id, nombre_completo, dni'),
         supabase.from('vehiculos').select('*').eq('estado', 'Activo'),
-        supabase.from('entidades_financieras').select('id, nombre, tea_soles_min, tea_dolares_min, plazo_maximo, periodo_gracia_min'),
+        supabase.from('entidades_financieras').select('id, nombre, tea_soles_min, tea_dolares_min, plazo_maximo, periodo_gracia_min, costos_notariales, costos_registrales, gps_mensual, portes_mensual, gastos_admin, seguro_desgravamen'),
         supabase.from('configuracion').select('*').limit(1).single()
       ]);
 
@@ -180,9 +180,26 @@ export default function Simulador({ addNotification }) {
     if (ent) {
       aplicarTasaEntidad(id);
       setPlazoMeses(ent.plazo_maximo);
+      
+      // Auto-populate new financial cost fields
+      setCostesNotariales(ent.costos_notariales !== null && ent.costos_notariales !== undefined ? String(ent.costos_notariales) : '');
+      setCostesRegistrales(ent.costos_registrales !== null && ent.costos_registrales !== undefined ? String(ent.costos_registrales) : '');
+      setGpsMensual(ent.gps_mensual !== null && ent.gps_mensual !== undefined ? String(ent.gps_mensual) : '');
+      setPortesMensual(ent.portes_mensual !== null && ent.portes_mensual !== undefined ? String(ent.portes_mensual) : '');
+      setGastosAdmMensual(ent.gastos_admin !== null && ent.gastos_admin !== undefined ? String(ent.gastos_admin) : '');
+      setSeguroDesgravamen(ent.seguro_desgravamen !== null && ent.seguro_desgravamen !== undefined ? String(ent.seguro_desgravamen) : '');
+      setPeriodoSegDes('Mensual');
     } else {
       setTasaInteres('');
       setPlazoMeses('');
+      
+      // Clear fields if entity is unselected
+      setCostesNotariales('');
+      setCostesRegistrales('');
+      setGpsMensual('');
+      setPortesMensual('');
+      setGastosAdmMensual('');
+      setSeguroDesgravamen('');
     }
   };
 
@@ -193,10 +210,10 @@ export default function Simulador({ addNotification }) {
 
   const getTotalGastos = () => {
     return (parseFloat(costesNotariales) || 0) +
-           (parseFloat(costesRegistrales) || 0) +
-           (parseFloat(tasacion) || 0) +
-           (parseFloat(comisionEstudio) || 0) +
-           (parseFloat(comisionActivacion) || 0);
+      (parseFloat(costesRegistrales) || 0) +
+      (parseFloat(tasacion) || 0) +
+      (parseFloat(comisionEstudio) || 0) +
+      (parseFloat(comisionActivacion) || 0);
   };
 
   const montoCuotaInicial = parseFloat(montoCuotaInicialStr) || 0;
@@ -346,7 +363,7 @@ export default function Simulador({ addNotification }) {
 
     const clienteObj = clientes.find(c => c.id === clienteId);
     const vehiculoObj = vehiculos.find(v => v.id.toString() === vehiculoId.toString());
-    const entidadObj  = entidades.find(e => e.id === entidadId);
+    const entidadObj = entidades.find(e => e.id === entidadId);
 
     exportCronogramaPDF({
       sym: currencySymbol,
@@ -529,9 +546,9 @@ export default function Simulador({ addNotification }) {
             <div className="form-grid">
               <div className="form-group">
                 <label>% Seguro de desgravamen — pSegDes <FieldTip tip="Seguro que cancela la deuda si el titular fallece. Se cobra como % sobre el saldo deudor de cada mes." /></label>
-                <div style={{display: 'flex', gap: '0.5rem'}}>
-                  <input type="number" step="0.001" min="0" style={{flex: 1}} value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
-                  <select style={{width: '110px'}} value={periodoSegDes} onChange={(e) => setPeriodoSegDes(e.target.value)}>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input type="number" step="0.001" min="0" style={{ flex: 1 }} value={seguroDesgravamen} onChange={(e) => setSeguroDesgravamen(e.target.value)} />
+                  <select style={{ width: '110px' }} value={periodoSegDes} onChange={(e) => setPeriodoSegDes(e.target.value)}>
                     <option value="Anual">Anual</option>
                     <option value="Mensual">Mensual</option>
                   </select>
@@ -570,7 +587,7 @@ export default function Simulador({ addNotification }) {
                 <input type="number" step="0.01" min="0" value={comisionActivacion} onChange={(e) => setComisionActivacion(e.target.value)} />
               </div>
             </div>
-            <div style={{marginTop: '1rem', color: 'var(--brand-700)', fontWeight: '600', fontSize: '0.9rem'}}>
+            <div style={{ marginTop: '1rem', color: 'var(--brand-700)', fontWeight: '600', fontSize: '0.9rem' }}>
               Total Gastos Iniciales: {currencySymbol} {fmt(getTotalGastos())} (se suman al monto del préstamo)
             </div>
           </div>
@@ -613,8 +630,8 @@ export default function Simulador({ addNotification }) {
         </form>
 
         <div className="right-panel">
-          <div className="section-card" style={{flex: 1}}>
-            <h3 style={{fontSize: '1.1rem', marginBottom: '1.5rem'}}>Resultados del financiamiento</h3>
+          <div className="section-card" style={{ flex: 1 }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>Resultados del financiamiento</h3>
 
             <div className="resultado-hero">
               <div>
@@ -651,7 +668,7 @@ export default function Simulador({ addNotification }) {
               </div>
               <div className="resultado-box">
                 <h4 className="fs-tip" data-tip="Comparación entre la TIR del crédito y el costo de oportunidad del capital (COK) en el mismo periodo.">TIR / COKi periodo</h4>
-                <div className="val" style={{fontSize: '0.95rem'}}>{resultado ? `${resultado.tirMensual === null ? 'N/D' : fmt(resultado.tirMensual, 3) + '%'} / ${fmt(resultado.cokMensual, 3)}%` : '--'}</div>
+                <div className="val" style={{ fontSize: '0.95rem' }}>{resultado ? `${resultado.tirMensual === null ? 'N/D' : fmt(resultado.tirMensual, 3) + '%'} / ${fmt(resultado.cokMensual, 3)}%` : '--'}</div>
               </div>
             </div>
 
@@ -672,14 +689,14 @@ export default function Simulador({ addNotification }) {
 
             {resultado && (
               <>
-                <h3 style={{fontSize: '1.1rem', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                  <BarChart3 size={18} style={{color: 'var(--brand-600)'}} /> Composición del pago mensual
+                <h3 style={{ fontSize: '1.1rem', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <BarChart3 size={18} style={{ color: 'var(--brand-600)' }} /> Composición del pago mensual
                 </h3>
                 <CuotaChart cronograma={resultado.cronograma} sym={currencySymbol} />
               </>
             )}
 
-            <h3 style={{fontSize: '1.1rem', margin: '2rem 0 1rem'}}>Cronograma de pagos</h3>
+            <h3 style={{ fontSize: '1.1rem', margin: '2rem 0 1rem' }}>Cronograma de pagos</h3>
             <div className="cronograma-wrapper">
               <table className="cronograma-table">
                 <thead>
@@ -712,7 +729,7 @@ export default function Simulador({ addNotification }) {
                 <tbody>
                   {!resultado ? (
                     <tr>
-                      <td colSpan="18" style={{padding: 0}}>
+                      <td colSpan="18" style={{ padding: 0 }}>
                         <div className="fs-empty">
                           <FileSearch />
                           <strong>Aún no hay cronograma</strong>
@@ -724,7 +741,7 @@ export default function Simulador({ addNotification }) {
                     <>
                       <tr className="fila-cero">
                         <td>0</td>
-                        <td colSpan="16" style={{textAlign: 'left', color: 'var(--ink-500)'}}>Desembolso del préstamo</td>
+                        <td colSpan="16" style={{ textAlign: 'left', color: 'var(--ink-500)' }}>Desembolso del préstamo</td>
                         <td className="flujo-positivo">{fmt(resultado.prestamo)}</td>
                       </tr>
                       {resultado.cronograma.map(c => (
@@ -755,8 +772,8 @@ export default function Simulador({ addNotification }) {
               </table>
             </div>
 
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2rem', marginBottom: '1rem', color: 'var(--brand-700)', fontWeight: 'bold'}}>
-              <span className="circle-number" style={{width: '20px', height: '20px', fontSize: '0.75rem'}}>6</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2rem', marginBottom: '1rem', color: 'var(--brand-700)', fontWeight: 'bold' }}>
+              <span className="circle-number" style={{ width: '20px', height: '20px', fontSize: '0.75rem' }}>6</span>
               Totales por concepto (transparencia de información)
             </div>
 
@@ -770,7 +787,7 @@ export default function Simulador({ addNotification }) {
               ['Total Gastos Administrativos', resultado?.totalGasAdm, 'Costo periódico'],
             ].map(([label, value, sub]) => (
               <div className="desglose-item" key={label}>
-                <div className="desglose-label"><Info size={16}/> {label}</div>
+                <div className="desglose-label"><Info size={16} /> {label}</div>
                 <div className="desglose-value">
                   <strong>{resultado ? `${currencySymbol} ${fmt(value)}` : '--'}</strong>
                   <span>{sub}</span>
@@ -786,7 +803,7 @@ export default function Simulador({ addNotification }) {
                 </div>
               </div>
               <div className="total-plazo">
-                DURANTE<br/>
+                DURANTE<br />
                 <strong>{resultado ? resultado.totalPeriodos : (plazo || '--')} meses</strong>
               </div>
             </div>
@@ -799,10 +816,10 @@ export default function Simulador({ addNotification }) {
           <Info size={18} /> La simulación mostrada es referencial. Los resultados pueden variar según las condiciones de la entidad financiera.
         </div>
         <div className="footer-actions">
-          <button className="btn-secondary" onClick={handleSave} style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+          <button className="btn-secondary" onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Save size={18} /> Guardar simulación
           </button>
-          <button className="btn-secondary" style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}} onClick={handleExport}>
+          <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={handleExport}>
             <Download size={18} /> Exportar
           </button>
         </div>

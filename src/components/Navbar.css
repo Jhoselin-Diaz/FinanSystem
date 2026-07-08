@@ -111,6 +111,7 @@
   color: #64748b;
   transition: transform 0.2s;
 }
+
 .chevron.open {
   transform: rotate(180deg);
 }
@@ -129,8 +130,15 @@
 }
 
 @keyframes dropFadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Notifications panel */

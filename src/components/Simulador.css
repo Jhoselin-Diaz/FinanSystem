@@ -29,7 +29,8 @@
   width: 100%;
 }
 
-.left-panel, .right-panel {
+.left-panel,
+.right-panel {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -103,6 +104,7 @@
 }
 
 @media (max-width: 480px) {
+
   .form-grid,
   .form-grid-3 {
     grid-template-columns: 1fr;
@@ -127,7 +129,8 @@
   letter-spacing: 0.01em;
 }
 
-.form-group input, .form-group select {
+.form-group input,
+.form-group select {
   padding: 0.62rem 0.9rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
@@ -144,7 +147,8 @@
   border-color: var(--ink-400);
 }
 
-.form-group input:focus, .form-group select:focus {
+.form-group input:focus,
+.form-group select:focus {
   border-color: var(--brand-600);
   box-shadow: 0 0 0 3px rgba(29, 104, 182, 0.14);
 }
@@ -450,7 +454,7 @@
   margin-bottom: 0.5rem;
 }
 
-.detalle-financiamiento > div {
+.detalle-financiamiento>div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;

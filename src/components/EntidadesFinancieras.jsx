@@ -21,6 +21,12 @@ export default function EntidadesFinancieras() {
     periodo_gracia_min: '',
     periodo_gracia_max: '',
     plazo_maximo: '',
+    costos_notariales: '',
+    costos_registrales: '',
+    gps_mensual: '',
+    portes_mensual: '',
+    gastos_admin: '',
+    seguro_desgravamen: '',
     estado: 'Activo'
   });
 
@@ -50,7 +56,15 @@ export default function EntidadesFinancieras() {
 
   const openModal = (entidad = null) => {
     if (entidad) {
-      setFormData(entidad);
+      setFormData({
+        ...entidad,
+        costos_notariales: entidad.costos_notariales ?? '',
+        costos_registrales: entidad.costos_registrales ?? '',
+        gps_mensual: entidad.gps_mensual ?? '',
+        portes_mensual: entidad.portes_mensual ?? '',
+        gastos_admin: entidad.gastos_admin ?? '',
+        seguro_desgravamen: entidad.seguro_desgravamen ?? ''
+      });
       setEditingId(entidad.id);
     } else {
       setFormData({
@@ -62,6 +76,12 @@ export default function EntidadesFinancieras() {
         periodo_gracia_min: '',
         periodo_gracia_max: '',
         plazo_maximo: '',
+        costos_notariales: '',
+        costos_registrales: '',
+        gps_mensual: '',
+        portes_mensual: '',
+        gastos_admin: '',
+        seguro_desgravamen: '',
         estado: 'Activo'
       });
       setEditingId(null);
@@ -86,6 +106,12 @@ export default function EntidadesFinancieras() {
         periodo_gracia_min: parseInt(formData.periodo_gracia_min),
         periodo_gracia_max: parseInt(formData.periodo_gracia_max),
         plazo_maximo: parseInt(formData.plazo_maximo),
+        costos_notariales: parseFloat(formData.costos_notariales) || 0,
+        costos_registrales: parseFloat(formData.costos_registrales) || 0,
+        gps_mensual: parseFloat(formData.gps_mensual) || 0,
+        portes_mensual: parseFloat(formData.portes_mensual) || 0,
+        gastos_admin: parseFloat(formData.gastos_admin) || 0,
+        seguro_desgravamen: parseFloat(formData.seguro_desgravamen) || 0,
         estado: formData.estado
       };
 
@@ -222,56 +248,92 @@ export default function EntidadesFinancieras() {
               <h2>{editingId ? 'Editar Entidad' : 'Registrar Entidad'}</h2>
               <button className="close-btn" onClick={closeModal}>&times;</button>
             </div>
-            <form onSubmit={handleSubmit} className="modal-body">
-              <div className="form-group full-width">
-                <label>Nombre de la entidad*</label>
-                <input required type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group half-width">
-                  <label>TEA Soles mínima (%)* <FieldTip tip="Tasa que el Simulador sugiere automáticamente al elegir este banco con moneda en soles." /></label>
-                  <input required type="number" step="0.01" name="tea_soles_min" value={formData.tea_soles_min} onChange={handleInputChange} />
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-group full-width">
+                  <label>Nombre de la entidad*</label>
+                  <input required type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} />
                 </div>
-                <div className="form-group half-width">
-                  <label>TEA Soles máxima (%)* <FieldTip tip="Tope del rango de tasas en soles que ofrece este banco (dato referencial)." /></label>
-                  <input required type="number" step="0.01" name="tea_soles_max" value={formData.tea_soles_max} onChange={handleInputChange} />
+                
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>TEA Soles mínima (%)* <FieldTip tip="Tasa que el Simulador sugiere automáticamente al elegir este banco con moneda en soles." /></label>
+                    <input required type="number" step="0.01" name="tea_soles_min" value={formData.tea_soles_min} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>TEA Soles máxima (%)* <FieldTip tip="Tope del rango de tasas en soles que ofrece este banco (dato referencial)." /></label>
+                    <input required type="number" step="0.01" name="tea_soles_max" value={formData.tea_soles_max} onChange={handleInputChange} />
+                  </div>
                 </div>
-              </div>
 
-              <div className="form-row">
-                <div className="form-group half-width">
-                  <label>TEA Dólares mínima (%)* <FieldTip tip="Tasa que el Simulador sugiere automáticamente al elegir este banco con moneda en dólares." /></label>
-                  <input required type="number" step="0.01" name="tea_dolares_min" value={formData.tea_dolares_min} onChange={handleInputChange} />
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>TEA Dólares mínima (%)* <FieldTip tip="Tasa que el Simulador sugiere automáticamente al elegir este banco con moneda en dólares." /></label>
+                    <input required type="number" step="0.01" name="tea_dolares_min" value={formData.tea_dolares_min} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>TEA Dólares máxima (%)* <FieldTip tip="Tope del rango de tasas en dólares que ofrece este banco (dato referencial)." /></label>
+                    <input required type="number" step="0.01" name="tea_dolares_max" value={formData.tea_dolares_max} onChange={handleInputChange} />
+                  </div>
                 </div>
-                <div className="form-group half-width">
-                  <label>TEA Dólares máxima (%)* <FieldTip tip="Tope del rango de tasas en dólares que ofrece este banco (dato referencial)." /></label>
-                  <input required type="number" step="0.01" name="tea_dolares_max" value={formData.tea_dolares_max} onChange={handleInputChange} />
-                </div>
-              </div>
 
-              <div className="form-row">
-                <div className="form-group half-width">
-                  <label>Periodo de Gracia mínima (meses)* <FieldTip tip="Meses de gracia mínimos que ofrece este banco (dato referencial)." /></label>
-                  <input required type="number" name="periodo_gracia_min" value={formData.periodo_gracia_min} onChange={handleInputChange} />
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>Periodo de Gracia mínima (meses)* <FieldTip tip="Meses de gracia mínimos que ofrece este banco (dato referencial)." /></label>
+                    <input required type="number" name="periodo_gracia_min" value={formData.periodo_gracia_min} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>Periodo de Gracia máxima (meses)* <FieldTip tip="Meses de gracia máximos que ofrece este banco (dato referencial)." /></label>
+                    <input required type="number" name="periodo_gracia_max" value={formData.periodo_gracia_max} onChange={handleInputChange} />
+                  </div>
                 </div>
-                <div className="form-group half-width">
-                  <label>Periodo de Gracia máxima (meses)* <FieldTip tip="Meses de gracia máximos que ofrece este banco (dato referencial)." /></label>
-                  <input required type="number" name="periodo_gracia_max" value={formData.periodo_gracia_max} onChange={handleInputChange} />
-                </div>
-              </div>
 
-              <div className="form-row">
-                <div className="form-group half-width">
-                  <label>Plazo máximo (meses)* <FieldTip tip="Al elegir este banco, el Simulador precarga este plazo como N." /></label>
-                  <input required type="number" name="plazo_maximo" value={formData.plazo_maximo} onChange={handleInputChange} />
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>Plazo máximo (meses)* <FieldTip tip="Al elegir este banco, el Simulador precarga este plazo como N." /></label>
+                    <input required type="number" name="plazo_maximo" value={formData.plazo_maximo} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>Estado <FieldTip tip="Indica si la entidad está operativa en el sistema." /></label>
+                    <select name="estado" value={formData.estado} onChange={handleInputChange}>
+                      <option value="Activo">Activo</option>
+                      <option value="Inactivo">Inactivo</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="form-group half-width">
-                  <label>Estado <FieldTip tip="Indica si la entidad está operativa en el sistema." /></label>
-                  <select name="estado" value={formData.estado} onChange={handleInputChange}>
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
-                  </select>
+
+                {/* Nuevos campos de costos financieros */}
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>Costes Notariales (S/)* <FieldTip tip="Costos notariales que se sugieren automáticamente para esta entidad." /></label>
+                    <input required type="number" step="0.01" name="costos_notariales" value={formData.costos_notariales} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>Costes Registrales (S/)* <FieldTip tip="Costos registrales que se sugieren automáticamente para esta entidad." /></label>
+                    <input required type="number" step="0.01" name="costos_registrales" value={formData.costos_registrales} onChange={handleInputChange} />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>Comisión GPS mensual (S/)* <FieldTip tip="Costo periódico mensual del GPS que se sugiere para esta entidad." /></label>
+                    <input required type="number" step="0.01" name="gps_mensual" value={formData.gps_mensual} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>Portes mensuales (S/)* <FieldTip tip="Portes de envío de estado de cuenta mensual sugerido para esta entidad." /></label>
+                    <input required type="number" step="0.01" name="portes_mensual" value={formData.portes_mensual} onChange={handleInputChange} />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label>Gastos de Administración (S/)* <FieldTip tip="Gastos de administración mensuales sugeridos para esta entidad." /></label>
+                    <input required type="number" step="0.01" name="gastos_admin" value={formData.gastos_admin} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group half-width">
+                    <label>Seguro Desgravamen mensual (%)* <FieldTip tip="Tasa del seguro de desgravamen sugerido para esta entidad." /></label>
+                    <input required type="number" step="0.001" name="seguro_desgravamen" value={formData.seguro_desgravamen} onChange={handleInputChange} />
+                  </div>
                 </div>
               </div>
 

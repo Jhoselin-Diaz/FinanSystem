@@ -11,7 +11,8 @@
   /* Marca (azules) */
   --brand-800: #123F6E;
   --brand-700: #17548F;
-  --brand-600: #1d68b6;          /* primario: botones, enlaces, acentos */
+  --brand-600: #1d68b6;
+  /* primario: botones, enlaces, acentos */
   --brand-500: #2f7cc9;
   --brand-100: #d7e7f7;
   --brand-050: #eaf3fb;
@@ -21,15 +22,23 @@
   --navy-950: #071729;
 
   /* Neutros slate (nunca blanco/negro puros) */
-  --ink-900: #16233b;            /* títulos */
-  --ink-700: #33445f;            /* cuerpo */
-  --ink-500: #64748b;            /* secundario, labels */
-  --ink-400: #94a3b8;            /* terciario, placeholders */
-  --line: #dfe7f2;               /* bordes */
+  --ink-900: #16233b;
+  /* títulos */
+  --ink-700: #33445f;
+  /* cuerpo */
+  --ink-500: #64748b;
+  /* secundario, labels */
+  --ink-400: #94a3b8;
+  /* terciario, placeholders */
+  --line: #dfe7f2;
+  /* bordes */
   --line-strong: #c6d3e4;
-  --surface: #ffffff;            /* tarjetas */
-  --surface-2: #f8fafc;          /* fondos internos */
-  --app-bg: #f2f6fb;             /* lienzo general, lavado azul */
+  --surface: #ffffff;
+  /* tarjetas */
+  --surface-2: #f8fafc;
+  /* fondos internos */
+  --app-bg: #f2f6fb;
+  /* lienzo general, lavado azul */
 
   /* Semánticos (no todo puede ser azul) */
   --ok-600: #0e8a62;
@@ -103,7 +112,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-family: var(--font-display);
   color: var(--ink-900);
   line-height: 1.25;
@@ -131,13 +143,19 @@ ul {
   list-style: none;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: inherit;
 }
 
 /* Cifras financieras: numerales tabulares para que las columnas alineen */
-.num, .cronograma-table td, .resultado-box .val, .total-value,
-.stat-value, .desglose-value strong {
+.num,
+.cronograma-table td,
+.resultado-box .val,
+.total-value,
+.stat-value,
+.desglose-value strong {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
 }
@@ -149,8 +167,11 @@ input, select, textarea {
   border-radius: 4px;
 }
 
-input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: none; /* los inputs usan borde + ring propios */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  /* los inputs usan borde + ring propios */
 }
 
 /* ============================================================
@@ -169,7 +190,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 @keyframes fs-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Skeletons de carga */
@@ -191,7 +214,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 @keyframes fs-shimmer {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Estado vacío */
@@ -253,7 +278,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   box-shadow: var(--shadow-md);
 }
 
-.fs-tip:hover::after, .fs-tip:focus-visible::after {
+.fs-tip:hover::after,
+.fs-tip:focus-visible::after {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
@@ -303,10 +329,25 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background: currentColor;
 }
 
-.fs-badge.ok { background: var(--ok-050); color: var(--ok-600); }
-.fs-badge.err { background: var(--err-050); color: var(--err-600); }
-.fs-badge.warn { background: var(--warn-050); color: var(--warn-700); }
-.fs-badge.muted { background: var(--surface-2); color: var(--ink-500); }
+.fs-badge.ok {
+  background: var(--ok-050);
+  color: var(--ok-600);
+}
+
+.fs-badge.err {
+  background: var(--err-050);
+  color: var(--err-600);
+}
+
+.fs-badge.warn {
+  background: var(--warn-050);
+  color: var(--warn-700);
+}
+
+.fs-badge.muted {
+  background: var(--surface-2);
+  color: var(--ink-500);
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar {
@@ -330,7 +371,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 /* Respeto a usuarios con movimiento reducido */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

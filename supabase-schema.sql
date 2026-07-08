@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS entidades_financieras (
   periodo_gracia_min INTEGER NOT NULL,
   periodo_gracia_max INTEGER NOT NULL,
   plazo_maximo INTEGER NOT NULL,
+  costos_notariales NUMERIC(12,2) DEFAULT 0,
+  costos_registrales NUMERIC(12,2) DEFAULT 0,
+  gps_mensual NUMERIC(10,2) DEFAULT 0,
+  portes_mensual NUMERIC(10,2) DEFAULT 0,
+  gastos_admin NUMERIC(10,2) DEFAULT 0,
+  seguro_desgravamen NUMERIC(6,4) DEFAULT 0,
   estado TEXT DEFAULT 'Activo' CHECK (estado IN ('Activo', 'Inactivo')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
