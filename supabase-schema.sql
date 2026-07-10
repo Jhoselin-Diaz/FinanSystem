@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS entidades_financieras (
   portes_mensual NUMERIC(10,2) DEFAULT 0,
   gastos_admin NUMERIC(10,2) DEFAULT 0,
   seguro_desgravamen NUMERIC(6,4) DEFAULT 0,
+  -- Tramos de TEA por monto a financiar (opcional). NULL/vacío = tasa única (tea_soles_min/max de arriba),
+  -- como Interbank. Si tiene tramos, cada elemento es {monto_min, monto_max, tea_min, tea_max}.
+  tramos_tea JSONB DEFAULT NULL,
   estado TEXT DEFAULT 'Activo' CHECK (estado IN ('Activo', 'Inactivo')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

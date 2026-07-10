@@ -24,6 +24,11 @@ export default function Simulador({ addNotification }) {
   // Cuota final / cuotón (pCF): dos campos sincronizados, monto y %
   const [porcentajeCuotaFinal, setPorcentajeCuotaFinal] = useState('');
   const [montoCuotaFinalStr, setMontoCuotaFinalStr] = useState('');
+  // Unidad visible para cada campo compuesto (monto/%, meses/años): el otro valor sigue
+  // sincronizado por dentro, solo cambia cuál casilla se muestra.
+  const [unidadCI, setUnidadCI] = useState('pct');
+  const [unidadCF, setUnidadCF] = useState('pct');
+  const [unidadPlazo, setUnidadPlazo] = useState('meses');
 
   const [tipoTasa, setTipoTasa] = useState('Efectiva Anual (TEA)');
   const [tasaInteres, setTasaInteres] = useState('');
@@ -62,7 +67,7 @@ export default function Simulador({ addNotification }) {
       const [resClientes, resVehiculos, resEntidades, resCfg] = await Promise.all([
         supabase.from('clientes').select('id, nombre_completo, dni'),
         supabase.from('vehiculos').select('*').eq('estado', 'Activo'),
-        supabase.from('entidades_financieras').select('id, nombre, tea_soles_min, tea_dolares_min, plazo_maximo, periodo_gracia_min, costos_notariales, costos_registrales, gps_mensual, portes_mensual, gastos_admin, seguro_desgravamen'),
+        supabase.from('entidades_financieras').select('id, nombre, tea_soles_min, tea_dolares_min, plazo_maximo, periodo_gracia_min, costos_notariales, costos_registrales, gps_mensual, portes_mensual, gastos_admin, seguro_desgravamen, tramos_tea'),
         supabase.from('configuracion').select('*').limit(1).single()
       ]);
 
@@ -107,7 +112,7 @@ export default function Simulador({ addNotification }) {
       if (veh.moneda) {
         setMoneda(veh.moneda);
         setMonedaBloqueada(true);
-        aplicarTasaEntidad(entidadId, veh.moneda);
+        aplicarTasaEntidad(entidadId, veh.moneda, { precio });
       } else {
         setMonedaBloqueada(false);
       }
@@ -118,18 +123,31 @@ export default function Simulador({ addNotification }) {
   };
 
   // Cuota inicial y cuota final (cuotón): campos de monto y % sincronizados entre sí
+  // Si la entidad elegida tiene tramos de TEA (ej. BCP), la cuota inicial cambia el monto a
+  // financiar y por lo tanto puede cambiar el tramo sugerido. Para entidades sin tramos (ej.
+  // Interbank) esto no hace nada, igual que antes.
+  const reevaluarTramoSiAplica = (montoCI) => {
+    const ent = entidades.find(e => e.id === entidadId);
+    if (ent && Array.isArray(ent.tramos_tea) && ent.tramos_tea.length > 0) {
+      aplicarTasaEntidad(entidadId, null, { cuotaInicial: montoCI });
+    }
+  };
+
   const handleMontoCIChange = (value) => {
     setMontoCuotaInicialStr(value);
     const pv0 = parseFloat(precioVehiculo) || 0;
     const monto = parseFloat(value) || 0;
     setPctCuotaInicial(pv0 > 0 && value !== '' ? (monto / pv0 * 100).toFixed(4) : '');
+    reevaluarTramoSiAplica(monto);
   };
 
   const handlePctCIChange = (value) => {
     setPctCuotaInicial(value);
     const pv0 = parseFloat(precioVehiculo) || 0;
     const pct = parseFloat(value) || 0;
-    setMontoCuotaInicialStr(pv0 > 0 && value !== '' ? (pv0 * pct / 100).toFixed(2) : '');
+    const monto = pv0 > 0 && value !== '' ? pv0 * pct / 100 : 0;
+    setMontoCuotaInicialStr(pv0 > 0 && value !== '' ? monto.toFixed(2) : '');
+    reevaluarTramoSiAplica(monto);
   };
 
   const handleMontoCFChange = (value) => {
@@ -165,9 +183,28 @@ export default function Simulador({ addNotification }) {
     setPlazo(String(anios * 12));
   };
 
-  const aplicarTasaEntidad = (id, monedaSel) => {
+  // Busca el tramo de TEA (por monto a financiar) que le corresponde a un banco tipo BCP.
+  // Si la entidad no tiene tramos (ej. Interbank, tramos_tea vacío), esta función no se usa.
+  const buscarTramoTea = (tramos, monto) => {
+    if (!Array.isArray(tramos) || tramos.length === 0) return null;
+    const match = tramos.find(t => {
+      const min = Number(t.monto_min) || 0;
+      const max = (t.monto_max === null || t.monto_max === undefined) ? Infinity : Number(t.monto_max);
+      return monto >= min && monto <= max;
+    });
+    return match || tramos[0];
+  };
+
+  const aplicarTasaEntidad = (id, monedaSel, overrides = {}) => {
     const ent = entidades.find(ent => ent.id === id);
-    if (ent) {
+    if (!ent) return;
+    if (Array.isArray(ent.tramos_tea) && ent.tramos_tea.length > 0) {
+      const pv = overrides.precio != null ? overrides.precio : (parseFloat(precioVehiculo) || 0);
+      const ci = overrides.cuotaInicial != null ? overrides.cuotaInicial : (parseFloat(montoCuotaInicialStr) || 0);
+      const montoFinanciar = Math.max(pv - ci, 0);
+      const tramo = buscarTramoTea(ent.tramos_tea, montoFinanciar);
+      if (tramo) setTasaInteres(tramo.tea_min);
+    } else {
       const isUSD = (monedaSel || moneda) === 'Dólares (US$)';
       setTasaInteres((isUSD ? ent.tea_dolares_min : ent.tea_soles_min) || ent.tea_soles_min);
     }
@@ -219,6 +256,12 @@ export default function Simulador({ addNotification }) {
   const montoCuotaInicial = parseFloat(montoCuotaInicialStr) || 0;
   const pctCuotaInicialEfectivo = parseFloat(pctCuotaInicial) || 0;
   const pctCuotaFinalEfectivo = parseFloat(porcentajeCuotaFinal) || 0;
+
+  // Tramo de TEA aplicado (solo entidades con tramos_tea, ej. BCP), para mostrarlo como referencia.
+  const entidadSeleccionada = entidades.find(e => e.id === entidadId);
+  const tramoAplicado = (entidadSeleccionada && Array.isArray(entidadSeleccionada.tramos_tea) && entidadSeleccionada.tramos_tea.length > 0)
+    ? buscarTramoTea(entidadSeleccionada.tramos_tea, Math.max((parseFloat(precioVehiculo) || 0) - montoCuotaInicial, 0))
+    : null;
 
   const validar = () => {
     const errs = [];
@@ -452,32 +495,32 @@ export default function Simulador({ addNotification }) {
                 {monedaBloqueada && <span className="help-text">Definida por la moneda del vehículo seleccionado</span>}
               </div>
 
-              <div className="form-group">
-                <label>Cuota inicial — pCI <FieldTip tip="Parte del precio que se paga al contado al inicio. Escribe el monto o el %: el otro campo se calcula solo." /></label>
-                <div className="dual-sync-input">
-                  <div className="dual-sync-field">
-                    <span className="dual-sync-label">{currencySymbol}</span>
-                    <input type="number" step="0.01" min="0" value={montoCuotaInicialStr} onChange={(e) => handleMontoCIChange(e.target.value)} placeholder="0.00" />
+              <div className="form-group form-group-span2">
+                <label>Cuota inicial — pCI <FieldTip tip="Parte del precio que se paga al contado al inicio. Cambia entre % y monto con el selector; el otro valor se calcula solo." /></label>
+                <div className="unit-input">
+                  <div className="unit-toggle">
+                    <button type="button" className={`unit-toggle-btn ${unidadCI === 'pct' ? 'active' : ''}`} onClick={() => setUnidadCI('pct')}>%</button>
+                    <button type="button" className={`unit-toggle-btn ${unidadCI === 'monto' ? 'active' : ''}`} onClick={() => setUnidadCI('monto')}>{currencySymbol}</button>
                   </div>
-                  <span className="dual-sync-divider">=</span>
-                  <div className="dual-sync-field">
+                  {unidadCI === 'pct' ? (
                     <input type="number" step="0.01" min="0" max="99" value={pctCuotaInicial} onChange={(e) => handlePctCIChange(e.target.value)} placeholder="0" />
-                    <span className="dual-sync-label">%</span>
-                  </div>
+                  ) : (
+                    <input type="number" step="0.01" min="0" value={montoCuotaInicialStr} onChange={(e) => handleMontoCIChange(e.target.value)} placeholder="0.00" />
+                  )}
                 </div>
               </div>
-              <div className="form-group">
+              <div className="form-group form-group-span2">
                 <label>Cuota final (cuotón) — pCF <FieldTip tip="Cuota extraordinaria que se paga al final del crédito (mes N+1). Al reservar parte del precio para el final, las cuotas mensuales bajan." /></label>
-                <div className="dual-sync-input">
-                  <div className="dual-sync-field">
-                    <span className="dual-sync-label">{currencySymbol}</span>
-                    <input type="number" step="0.01" min="0" value={montoCuotaFinalStr} onChange={(e) => handleMontoCFChange(e.target.value)} placeholder="0.00" />
+                <div className="unit-input">
+                  <div className="unit-toggle">
+                    <button type="button" className={`unit-toggle-btn ${unidadCF === 'pct' ? 'active' : ''}`} onClick={() => setUnidadCF('pct')}>%</button>
+                    <button type="button" className={`unit-toggle-btn ${unidadCF === 'monto' ? 'active' : ''}`} onClick={() => setUnidadCF('monto')}>{currencySymbol}</button>
                   </div>
-                  <span className="dual-sync-divider">=</span>
-                  <div className="dual-sync-field">
+                  {unidadCF === 'pct' ? (
                     <input type="number" step="0.01" min="0" max="99" value={porcentajeCuotaFinal} onChange={(e) => handlePctCFChange(e.target.value)} placeholder="0" />
-                    <span className="dual-sync-label">%</span>
-                  </div>
+                  ) : (
+                    <input type="number" step="0.01" min="0" value={montoCuotaFinalStr} onChange={(e) => handleMontoCFChange(e.target.value)} placeholder="0.00" />
+                  )}
                 </div>
                 <span className="help-text">Se paga un mes después de la última cuota (mes N+1)</span>
               </div>
@@ -495,6 +538,11 @@ export default function Simulador({ addNotification }) {
                   <input type="number" step="0.0001" required value={tasaInteres} onChange={(e) => setTasaInteres(e.target.value)} />
                   <span className="addon">%</span>
                 </div>
+                {tramoAplicado && (
+                  <span className="help-text">
+                    Tramo aplicado (monto a financiar ≈ {currencySymbol} {fmt(Math.max((parseFloat(precioVehiculo) || 0) - montoCuotaInicial, 0))}): TEA {fmt(tramoAplicado.tea_min, 2)}% - {fmt(tramoAplicado.tea_max, 2)}%
+                  </span>
+                )}
               </div>
 
               <div className="form-group">
@@ -509,18 +557,18 @@ export default function Simulador({ addNotification }) {
                   <option value="Anual">Anual</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Plazo — N <FieldTip tip="Duración del crédito. Escribe meses o años: el otro campo se sincroniza. El cálculo usa el número de meses (N)." /></label>
-                <div className="dual-sync-input">
-                  <div className="dual-sync-field">
+              <div className="form-group form-group-span2">
+                <label>Plazo — N <FieldTip tip="Duración del crédito. Cambia entre meses y años con el selector; el cálculo usa el número de meses (N)." /></label>
+                <div className="unit-input">
+                  <div className="unit-toggle">
+                    <button type="button" className={`unit-toggle-btn ${unidadPlazo === 'meses' ? 'active' : ''}`} onClick={() => setUnidadPlazo('meses')}>Meses</button>
+                    <button type="button" className={`unit-toggle-btn ${unidadPlazo === 'anios' ? 'active' : ''}`} onClick={() => setUnidadPlazo('anios')}>Años</button>
+                  </div>
+                  {unidadPlazo === 'meses' ? (
                     <input type="number" required min="1" step="1" value={plazo} onChange={(e) => setPlazoMeses(e.target.value)} placeholder="0" />
-                    <span className="dual-sync-label">meses</span>
-                  </div>
-                  <span className="dual-sync-divider">=</span>
-                  <div className="dual-sync-field">
+                  ) : (
                     <input type="number" min="0" step="1" value={plazoAniosStr} onChange={(e) => handlePlazoAniosChange(e.target.value)} onKeyDown={(e) => { if (e.key === '.' || e.key === ',') e.preventDefault(); }} placeholder="0" />
-                    <span className="dual-sync-label">años</span>
-                  </div>
+                  )}
                 </div>
                 <span className="help-text">Frecuencia de pago: 30 días · Año de 360 días · 12 cuotas/año</span>
               </div>

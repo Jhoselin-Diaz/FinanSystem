@@ -73,6 +73,11 @@ export default function Clientes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (parseFloat(formData.ingreso_mensual) < 0) {
+        alert('El ingreso familiar mensual no puede ser un valor negativo.');
+        return;
+      }
+
       const payload = {
         nombre_completo: formData.nombre_completo,
         dni: formData.dni,
@@ -246,7 +251,7 @@ export default function Clientes() {
               <div className="form-row">
                 <div className="form-group half-width">
                   <label>Ingreso Familiar mensual (S/)* <FieldTip tip="Ingreso del hogar. Sirve de referencia para evaluar si la cuota mensual es pagable." /></label>
-                  <input required type="number" step="0.01" name="ingreso_mensual" value={formData.ingreso_mensual} onChange={handleInputChange} />
+                  <input required type="number" step="0.01" min="0" name="ingreso_mensual" value={formData.ingreso_mensual} onChange={handleInputChange} />
                 </div>
                 <div className="form-group half-width">
                   <label>Número de dependencias* <FieldTip tip="Personas que dependen económicamente del cliente (hijos, padres a cargo, etc.)." /></label>

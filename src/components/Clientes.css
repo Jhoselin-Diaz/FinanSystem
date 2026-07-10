@@ -325,6 +325,12 @@
   border-color: var(--brand-600);
 }
 
+/* Feedback en vivo (ej. al escribir un número negativo): solo marca error después de que el usuario tocó el campo */
+.form-group input:user-invalid {
+  border-color: var(--err-600);
+  box-shadow: 0 0 0 3px rgba(200, 30, 60, 0.1);
+}
+
 .modal-footer {
   padding: 1.5rem;
   border-top: 1px solid var(--line);

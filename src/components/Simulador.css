@@ -122,6 +122,11 @@
   min-width: 0;
 }
 
+/* Campos compuestos (monto + %, o meses + años): necesitan más ancho para no recortar el número */
+.form-group-span2 {
+  grid-column: 1 / -1;
+}
+
 .form-group label {
   font-size: 0.78rem;
   font-weight: 600;
@@ -639,55 +644,51 @@
   line-height: 1.4;
 }
 
-.dual-sync-input {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.dual-sync-field {
+/* Campo compuesto: selector de unidad (pastilla) + una sola casilla, en vez de dos casillas
+   separadas. Evita que el número se vea apretado o recortado. */
+.unit-input {
   display: flex;
   align-items: stretch;
-  flex: 1;
-  min-width: 0;
+  gap: 0.6rem;
+}
+
+.unit-toggle {
+  display: flex;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
-  background: var(--surface);
   overflow: hidden;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  flex-shrink: 0;
 }
 
-.dual-sync-field:focus-within {
-  border-color: var(--brand-600);
-  box-shadow: 0 0 0 3px rgba(29, 104, 182, 0.14);
-}
-
-.dual-sync-field input {
-  border: none;
-  outline: none;
-  padding: 0.62rem 0.6rem;
-  width: 100%;
-  min-width: 0;
-  font-size: 0.9rem;
-  color: var(--ink-900);
-  background: transparent;
-}
-
-.dual-sync-label {
-  display: flex;
-  align-items: center;
-  padding: 0 0.65rem;
-  background: var(--surface-2);
-  color: var(--ink-500);
-  font-weight: 600;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
-.dual-sync-divider {
-  color: var(--ink-400);
-  font-weight: 700;
+.unit-toggle-btn {
+  padding: 0 1rem;
+  font-family: var(--font-body);
   font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-500);
+  background: var(--surface-2);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.unit-toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--line-strong);
+}
+
+.unit-toggle-btn:hover:not(.active) {
+  background: var(--surface);
+  color: var(--ink-700);
+}
+
+.unit-toggle-btn.active {
+  background: var(--brand-600);
+  color: white;
+}
+
+.unit-input input {
+  flex: 1;
+  min-width: 100px;
 }
 
 /* ── Responsive ─────────────────────────────────────────── */
