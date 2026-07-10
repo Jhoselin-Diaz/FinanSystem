@@ -132,6 +132,10 @@
   font-weight: 600;
   color: var(--ink-500);
   letter-spacing: 0.01em;
+  /* Reserva espacio para 2 líneas: si una etiqueta vecina es más corta y no se parte,
+     igual arrancan ambos inputs a la misma altura dentro de la fila del grid. */
+  min-height: 2.4rem;
+  display: block;
 }
 
 .form-group input,
